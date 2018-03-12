@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <stock id="sh600519" symbol="yhhyhh">
+  <stock id="sh600030" symbol="yhhyhh">
     <recs>
       <i d="2018-01-01" t="09:00:00" p="1.11" a="1010" f="b" c="5" x="1.12" e="0" />
       <i d="2018-01-01" t="09:00:00" p="1.1" a="500" f="s" c="5" x="1.12" e="0" />

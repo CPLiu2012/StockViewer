@@ -29,7 +29,7 @@ var _dataURL = {
     position_analysis: "http://qt.gtimg.cn/q=s_pk",
     //实时成交量明细,返回v_detail_data_sh600519, 参数p为页码
     position_analysis: "http://stock.gtimg.cn/data/index.php?appn=detail&action=data&c=sh600519&p=2"
-}
+};
 
 var _dataURLSina = {
     //关键字查询, 返回suggestvalue=""
@@ -37,14 +37,18 @@ var _dataURLSina = {
     //当前信息, 返回hq_str_sh601006=""
     detail_now: "http://hq.sinajs.cn/list=sh601006",
     //分时图
-    timeSharing_plans: "http://image.sinajs.cn/newchart/min/n/sh000001.gif",
+    timeSharing_plans: "http://image.sinajs.cn/newchart/min/n/",
     //日K图
-    k_line_d: "http://image.sinajs.cn/newchart/daily/n/sh601006.gif",
+    k_line_d: "http://image.sinajs.cn/newchart/daily/n/",
     //周K图, 返回weekly_data=""
-    k_line_w: "http://image.sinajs.cn/newchart/weekly/n/sh000001.gif",
+    k_line_w: "http://image.sinajs.cn/newchart/weekly/n/",
     //月K图, 返回monthly_data=""
-    k_line_m: "http://image.sinajs.cn/newchart/monthly/n/sh000001.gif"
-}
+    k_line_m: "http://image.sinajs.cn/newchart/monthly/n/"
+};
+
+var _intervalForRefMainTB = '';
+var _intervalForRefStockInfo = '';
+var _intervalForRefTimeSharingPlans = '';
 
 function _loadStockList() {
     _historyDoc = $(LoadXMLFile('recordData.xml'));
@@ -75,6 +79,34 @@ function _loadStockList() {
     });
 };
 
+function onClickRecordButton(eventObj) {
+
+};
+
+function onClickAdviseButton(eventObj) {
+
+};
+
+function onDragButtonMouseDown(eventObj) {
+
+};
+
+function onClickStockInfoName(eventObj) {
+    var stockId = $(eventObj.currentTarget).attr('data-stockid');
+    $('#tab_Header_Stock_Info a').removeClass('active');
+    $('#tab_Header_Stock_Info a:first').addClass('active');
+    $('#img_Stock_Info_K_Line').attr('data-target', stockId.split('|')[0]);
+    $('#img_Stock_Info_K_Line').attr('src', '');
+    startRefereshStockInforModal(stockId);
+    startRefereshKLine();
+    //_intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", 5000);
+    //_intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', 1000);
+};
+
+function onClickStockInfoAlert(eventObj) {
+    var stockId = $(eventObj.currentTarget).attr('data-stockid');
+};
+
 function buildMainTable() {
     var tmpHTMLArr = [];
     for (var i = 0; i < _globalDataObj.list.length; i++) {
@@ -82,25 +114,12 @@ function buildMainTable() {
     }
     $('.main-table-body').empty();
     $('.main-table-body').append($(tmpHTMLArr.join('')));
-
-    $('.stock_info_cell_alert .fa-bell').on('click', function () {
-        var stockId = $(arguments[0].currentTarget).attr('data-stockid');
-    });
-
-    $('.stock-info-btn').on('click', function () {
-        var stockId = $(arguments[0].currentTarget).attr('data-stockid');
-        beginStockInforModal(stockId);
-    });
-
-    $('.data-button.record-btn').on('click', function () {
-    });
-
-    $('.data-button.advise-btn').on('click', function () {
-    });
-
-    $('.data-button.drag-row-btn').on('mousedown', function () {
-
-    });
+    $('.stock_info_cell_alert .fa-bell').click(onClickStockInfoAlert);
+    $('.stock-info-btn').click(onClickStockInfoName);
+    $('.data-button.record-btn').click(onClickRecordButton);
+    $('.data-button.advise-btn').click(onClickAdviseButton);
+    $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
+    //_intervalForRefMainTB = window.setInterval("refereshDataTable();", 1000);
 };
 
 function buildStockDataRow(stockId, index) {
@@ -153,6 +172,20 @@ function buildStockDataRow(stockId, index) {
 function addStockToDataTable(stockId) {
     var rowHTML = buildStockDataRow(stockId, _globalDataObj.list.length - 1);
     $('.main-table-body').append($(rowHTML.join('')));
+    $('.stock_info_cell_alert .fa-bell').unbind();
+    $('.stock-info-btn').unbind();
+    $('.data-button.record-btn').unbind();
+    $('.data-button.advise-btn').unbind();
+    $('.data-button.drag-row-btn').unbind();
+    $('.stock_info_cell_alert .fa-bell').click(onClickStockInfoAlert);
+    $('.stock-info-btn').click(onClickStockInfoName);
+    $('.data-button.record-btn').click(onClickRecordButton);
+    $('.data-button.advise-btn').click(onClickAdviseButton);
+    $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
+};
+
+function stopRefereshDataTable() {
+    window.clearInterval(_intervalForRefMainTB);
 };
 
 function refereshDataTable() {
@@ -263,7 +296,6 @@ function addStock(stockId) {
             StockLoader.history(stockId);
             StockLoader.market();
             addStockToDataTable(stockId);
-            refereshDataTable();
         },
         error: function () { }
     });
@@ -317,6 +349,33 @@ function initEvents() {
         var index = $(arguments[0].currentTarget).attr('data-target');
         _globalDataObj.list[index].symbol = $('#txt_Stock_Info_Advise_Symbol').val();
     });
+
+    $('#tab_Header_Stock_Info a').on('click', function (eventObj) {
+        eventObj.preventDefault();
+        var hrefStr = $(eventObj.currentTarget).attr('href');
+        var imgEl = $('#img_Stock_Info_K_Line');
+        var stockId = imgEl.attr('data-target');
+        var tmpURL = '';
+        stopRefereshKLine();
+        switch (hrefStr) {
+            case "#k-line-daily":
+                tmpURL = _dataURLSina.k_line_d + stockId;
+                break;
+            case "#k-line-weekly":
+                tmpURL = _dataURLSina.k_line_w + stockId;
+                break;
+            case "#k-line-monthly":
+                tmpURL = _dataURLSina.k_line_m + stockId;
+                break;
+            case "#time-sharing-plan":
+            default:
+                tmpURL = _dataURLSina.timeSharing_plans + stockId;
+                _intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", 5000);
+                break;
+        }
+
+        imgEl.attr('src', tmpURL + '.gif?rnd=' + (new Date()).valueOf());
+    });
 };
 
 function getFormatedStockId() {
@@ -343,22 +402,10 @@ function initPage() {
 
 /*data item events*/
 function stopRefereshStockInfoModal() {
-
+    window.clearInterval(_intervalForRefStockInfo);
 };
 
-function beginStockInforModal(stockId) {
-    //$.ajax({
-    //    url: " http://qt.gtimg.cn/q=" + stockId,
-    //    dataType: "script",
-    //    cache: "false",
-    //    type: "GET",
-    //    context: this,
-    //    success: function () {
-    //        StockLoader.market();
-    //        buildMainTable();
-    //    },
-    //    error: function () { }
-    //});
+function startRefereshStockInforModal(stockId) {
     stockId = stockId.split('|');
     var symbol = stockId[1];
     var index = stockId[2];
@@ -376,31 +423,43 @@ function beginStockInforModal(stockId) {
     $('#txt_Stock_Info_Referesh_Date').text(tmpObj.datetime.toLocaleDateString());
     $('#txt_Stock_Info_Referesh_Time').text(tmpObj.datetime.toTimeString().substr(0, 8));
     $('#txt_Stock_Info_Opening_Price').text(tmpObj.priceTO.toFixed(2));
-    $('#txt_Stock_Info_Turnover').text((tmpObj.deal_A / 10000).toFixed(4) + '万手');
+    $('#txt_Stock_Info_Turnover').text((tmpObj.deal_A / 10000).toFixed(2));
     $('#txt_Stock_Info_Range').text(tmpObj.range.toFixed(2) + '%');
     $('#txt_Stock_Info_High_Price').text(tmpObj.priceTX.toFixed(2));
-    $('#txt_Stock_Info_Turnover_Volume').text((tmpObj.deal_V / 10000).toFixed(2) + '亿元');
+    $('#txt_Stock_Info_Turnover_Volume').text((tmpObj.deal_V / 10000).toFixed(2));
     $('#txt_Stock_Info_Turnover_Rate').text(tmpObj.turnover_rate.toFixed(2) + '%');
     $('#txt_Stock_Info_Low_Price').text(tmpObj.priceTM.toFixed(2));
-    $('#txt_Stock_Info_Total_Market_Cap').text(tmpObj.total_market_cap.toFixed(2) + '亿元');
+    $('#txt_Stock_Info_Total_Market_Cap').text(tmpObj.total_market_cap.toFixed(2));
     $('#txt_Stock_Info_PriceBook_Value_Ratio').text(tmpObj.price_book_value_ratio.toFixed(2));
     $('#txt_Stock_Info_Closing_Price').text(tmpObj.priceYC.toFixed(2));
-    $('#txt_Stock_Info_Negotiable_Market_Cap').text(tmpObj.negotiable_market_cap.toFixed(2) + '亿元');
+    $('#txt_Stock_Info_Negotiable_Market_Cap').text(tmpObj.negotiable_market_cap.toFixed(2));
     $('#txt_Stock_Info_Price_Earning_Ratio').text(tmpObj.price_earning_ratio.toFixed(2));
     $('#img_Stock_Info_K_Line');
-
     $('#txt_Stock_Info_Price_Arrow').empty();
     if (tmpObj.rise_fall == 0) {
         $('.rise-fall-item').css('color', 'black');
+        $('#txt_Stock_Info_Price_Arrow').html('<i class="fas fa-stop-circle"></i>');
     } else if (tmpObj.rise_fall > 0) {
         $('.rise-fall-item').css('color', 'red');
         $('#txt_Stock_Info_Price_Arrow').html('<i class="fas fa-arrow-circle-up"></i>');
     } else {
         $('.rise-fall-item').css('color', 'green');
         $('#txt_Stock_Info_Price_Arrow').html('<i class="fas fa-arrow-circle-down"></i>');
-
     }
 };
+
+function stopRefereshKLine() {
+    window.clearInterval(_intervalForRefTimeSharingPlans);
+};
+
+function startRefereshKLine() {
+    var imgEl = $('#img_Stock_Info_K_Line');
+    if (imgEl.attr('src') == '') {
+        imgEl.attr('src', _dataURLSina.timeSharing_plans + imgEl.attr('data-target') + '.gif');
+    }
+
+    imgEl.attr('src', imgEl.attr('src').split('?')[0] + '?rnd=' + (new Date()).valueOf());
+}
 
 /*
 1. 0: 未知 

@@ -3,24 +3,32 @@
     font-size: 12px;
 }
 
+.w-50p {
+    width: 50px;
+}
+
 .container-fluid.main-wrap {
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.table th, .table td {
-    padding: 0.2rem;
-    vertical-align: middle;
-    border: none;
-    font-size: 12px;
-    border-right: solid 1px gray;
+.table {
+    margin-bottom: 5px;
 }
 
-.table thead th {
-    text-align: center;
-    border: none;
-    border-bottom: solid 1px gray;
-}
+    .table th, .table td {
+        padding: 0.2rem;
+        vertical-align: middle;
+        border: none;
+        font-size: 12px;
+        border-right: solid 1px gray;
+    }
+
+    .table thead th {
+        text-align: center;
+        border: none;
+        border-bottom: solid 1px gray;
+    }
 
 .table-striped tbody tr:hover {
     background-color: rgba(0, 0, 0, 0.2);
@@ -63,11 +71,52 @@
 }
 
 /*Stock Infotmation Modal*/
-.rise-fall-item{
+#stockInfoModal .rise-fall-item {
     font-weight: bold;
+    width: 50px;
 }
 
-#txt_Stock_Info_Current_Price, #txt_Stock_Info_Price_Arrow{
+#txt_Stock_Info_Current_Price, #txt_Stock_Info_Price_Arrow {
     font-size: 25px;
     text-align: center;
+}
+
+#stockInfoModal .unit-text-span {
+    font-weight: bold;
+    padding-left: 2px;
+    color: black;
+}
+
+#stockInfoModal .detail-info-table .cell-col-1 {
+    font-weight: bold;
+    width: 40px;
+}
+
+#stockInfoModal .detail-info-table .cell-col-2 {
+    color: blue;
+    width: 50px;
+}
+
+#stockInfoModal .detail-info-table .cell-col-3 {
+    font-weight: bold;
+    width: 60px;
+}
+
+#stockInfoModal .detail-info-table .cell-col-4 {
+    color: blue;
+    width: 80px;
+}
+
+#stockInfoModal .detail-info-table .cell-col-5 {
+    font-weight: bold;
+    width: 40px;
+}
+
+#stockInfoModal .detail-info-table .cell-col-6 {
+    color: blue;
+    width: 60px;
+}
+
+#stockInfoModal .detail-info-table .empty-col {
+    width:30px;
 }
