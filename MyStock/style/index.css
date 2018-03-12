@@ -1,0 +1,73 @@
+﻿body {
+    font-family: 'Microsoft YaHei UI', Verdana;
+    font-size: 12px;
+}
+
+.container-fluid.main-wrap {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.table th, .table td {
+    padding: 0.2rem;
+    vertical-align: middle;
+    border: none;
+    font-size: 12px;
+    border-right: solid 1px gray;
+}
+
+.table thead th {
+    text-align: center;
+    border: none;
+    border-bottom: solid 1px gray;
+}
+
+.table-striped tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.btn-sm.data-button, .btn-group-sm.data-button > .btn {
+    padding: 0px 2px;
+    line-height: initial;
+}
+
+.record-btn, .advise-btn, .drag-row-btn {
+    cursor: pointer;
+}
+
+.modal-header, .modal-footer {
+    padding: 5px 15px;
+}
+
+#stockInfoModal .table th, .table td {
+    border: none;
+}
+
+.stock_info_cell_advise_buy {
+    font-weight: bold;
+    color: red;
+}
+
+.stock_info_cell_advise_profit {
+    font-weight: bold;
+    color: black;
+}
+
+.stock_info_cell_advise_loss {
+    font-weight: bold;
+    color: green;
+}
+
+.stock_info_cell_alert {
+    cursor: pointer;
+}
+
+/*Stock Infotmation Modal*/
+.rise-fall-item{
+    font-weight: bold;
+}
+
+#txt_Stock_Info_Current_Price, #txt_Stock_Info_Price_Arrow{
+    font-size: 25px;
+    text-align: center;
+}
