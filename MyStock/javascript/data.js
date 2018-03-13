@@ -33,7 +33,7 @@ var _dataURL = {
 
 var _dataURLSina = {
     //关键字查询, 返回suggestvalue=""
-    stock_search: "http://suggest3.sinajs.cn/suggest/type=11&key=",
+    stock_search: "http://suggest3.sinajs.cn/suggest/type=11,12&key=",
     //当前信息, 返回hq_str_sh601006=""
     detail_now: "http://hq.sinajs.cn/list=sh601006",
     //分时图
@@ -43,12 +43,19 @@ var _dataURLSina = {
     //周K图, 返回weekly_data=""
     k_line_w: "http://image.sinajs.cn/newchart/weekly/n/",
     //月K图, 返回monthly_data=""
-    k_line_m: "http://image.sinajs.cn/newchart/monthly/n/"
+    k_line_m: "http://image.sinajs.cn/newchart/monthly/n/",
+    //成交明细
+    deal_detail: 'http://market.finance.sina.com.cn/downxls.php?date=2011-07-08&symbol=sh600900',
+    //分价表
+    price_points_table: 'http://market.finance.sina.com.cn/pricehis.php?symbol=sh600900&startdate=2011-08-17&enddate=2011-08-19'
 };
 
-var _intervalForRefMainTB = '';
-var _intervalForRefStockInfo = '';
-var _intervalForRefTimeSharingPlans = '';
+var _intervalForRefMainTB_Time = 1000;
+var _intervalForRefStockInfo_Time = 1000;
+var _intervalForRefTimeSharingPlans_Time = 5000;
+var _intervalForRefMainTB = null;
+var _intervalForRefStockInfo = null;
+var _intervalForRefTimeSharingPlans = null;
 
 function _loadStockList() {
     _historyDoc = $(LoadXMLFile('recordData.xml'));
@@ -92,15 +99,18 @@ function onDragButtonMouseDown(eventObj) {
 };
 
 function onClickStockInfoName(eventObj) {
-    var stockId = $(eventObj.currentTarget).attr('data-stockid');
+    var tmpId = $(eventObj.currentTarget).attr('data-stockid');
     $('#tab_Header_Stock_Info a').removeClass('active');
     $('#tab_Header_Stock_Info a:first').addClass('active');
-    $('#img_Stock_Info_K_Line').attr('data-target', stockId.split('|')[0]);
-    $('#img_Stock_Info_K_Line').attr('src', '');
-    startRefereshStockInforModal(stockId);
+    var stockId = tmpId.split('|')[0];
+    $('#img_Stock_Info_Time_Sharing').attr('data-target', stockId.split('|')[0]);
+    $('#img_Stock_Info_K_Line_Daily').attr('src', _dataURLSina.k_line_d + stockId + '.gif?rnd=' + (new Date()).valueOf());
+    $('#img_Stock_Info_K_Line_Weekly').attr('src', _dataURLSina.k_line_w + stockId + '.gif?rnd=' + (new Date()).valueOf());
+    $('#img_Stock_Info_K_Line_Monthly').attr('src', _dataURLSina.k_line_m + stockId + '.gif?rnd=' + (new Date()).valueOf());
+    startRefereshStockInforModal(tmpId);
     startRefereshKLine();
-    //_intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", 5000);
-    //_intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', 1000);
+    //_intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', _intervalForRefStockInfo_Time);
+    //_intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", _intervalForRefTimeSharingPlans);
 };
 
 function onClickStockInfoAlert(eventObj) {
@@ -119,7 +129,7 @@ function buildMainTable() {
     $('.data-button.record-btn').click(onClickRecordButton);
     $('.data-button.advise-btn').click(onClickAdviseButton);
     $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
-    //_intervalForRefMainTB = window.setInterval("refereshDataTable();", 1000);
+    //_intervalForRefMainTB = window.setInterval("refereshDataTable();", _intervalForRefMainTB_Time);
 };
 
 function buildStockDataRow(stockId, index) {
@@ -186,45 +196,51 @@ function addStockToDataTable(stockId) {
 
 function stopRefereshDataTable() {
     window.clearInterval(_intervalForRefMainTB);
+    _intervalForRefMainTB = null;
 };
 
 function refereshDataTable() {
     var currData, currMarket, tmpVal, tmpColor, stockId, currRowId;
-    for (var i = 0; i < _globalDataObj.list.length; i++) {
-        stockId = _globalDataObj.list[i].id;
-        currData = _globalDataObj.stocks[stockId];
-        currMarket = currData.market;
-        currRowId = '#stock_info_row_' + stockId;
-        tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
-        $(currRowId).css('color', tmpColor);
-        $(currRowId + ' .stock_info_cell_symbol').text(_globalDataObj.list[i].symbol);
-        $(currRowId + ' .stock_info_cell_priceYC').text(formatValue(currMarket.priceYC, true));
-        $(currRowId + ' .stock_info_cell_priceTO').text(formatValue(currMarket.priceTO, true));
-        $(currRowId + ' .stock_info_cell_priceTC').text(formatValue(currMarket.priceTC, true));
-        $(currRowId + ' .stock_info_cell_rise_fall').text(formatValue(currMarket.rise_fall, true));
-        $(currRowId + ' .stock_info_cell_rise_fall_ratio').text(formatValue(currMarket.rise_fall_ratio, true) + '%');
-        $(currRowId + ' .stock_info_cell_priceTX').text(formatValue(currMarket.priceTX, true));
-        $(currRowId + ' .stock_info_cell_priceTM').text(formatValue(currMarket.priceTM, true));
-        $(currRowId + ' .stock_info_cell_costPrice').text(formatValue(currData.costPrice, true));
-        $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
-        $(currRowId + ' .stock_info_cell_totalValue').text(formatValue(currData.totalValue, true));
-        $(currRowId + ' .stock_info_cell_todayPL').text(formatValue(currMarket.rise_fall * currData.amount, true));
-        tmpVal = (currMarket.priceTC - currData.costPrice) * currData.amount;
-        $(currRowId + ' .stock_info_cell_totalPL').css('color', tmpVal > 0 ? 'red;"' : tmpVal < 0 ? 'green' : 'black');
-        $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(tmpVal, true));
-        tmpVal = _globalDataObj.stocks[stockId].advise;
-        tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
-        $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
-        $(currRowId + ' .stock_info_cell_advise_profit').text(tmpVal.stopProfitScope);
-        $(currRowId + ' .stock_info_cell_advise_loss').text(tmpVal.stopLossScope);
-        var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
-        var alertObj = checkAdviseScope(currData);
-        alertItem.attr('title', alertObj.title);
-        if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
-            alertItem.addClass('fa-spin');
-        } else {
-            alertItem.removeClass('fa-spin');
+    try {
+        for (var i = 0; i < _globalDataObj.list.length; i++) {
+            stockId = _globalDataObj.list[i].id;
+            currData = _globalDataObj.stocks[stockId];
+            currMarket = currData.market;
+            currRowId = '#stock_info_row_' + stockId;
+            tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
+            $(currRowId).css('color', tmpColor);
+            $(currRowId + ' .stock_info_cell_symbol').text(_globalDataObj.list[i].symbol);
+            $(currRowId + ' .stock_info_cell_priceYC').text(formatValue(currMarket.priceYC, true));
+            $(currRowId + ' .stock_info_cell_priceTO').text(formatValue(currMarket.priceTO, true));
+            $(currRowId + ' .stock_info_cell_priceTC').text(formatValue(currMarket.priceTC, true));
+            $(currRowId + ' .stock_info_cell_rise_fall').text(formatValue(currMarket.rise_fall, true));
+            $(currRowId + ' .stock_info_cell_rise_fall_ratio').text(formatValue(currMarket.rise_fall_ratio, true) + '%');
+            $(currRowId + ' .stock_info_cell_priceTX').text(formatValue(currMarket.priceTX, true));
+            $(currRowId + ' .stock_info_cell_priceTM').text(formatValue(currMarket.priceTM, true));
+            $(currRowId + ' .stock_info_cell_costPrice').text(formatValue(currData.costPrice, true));
+            $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
+            $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalValue, true));
+            $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
+            tmpVal = currData.amount == 0 ? currData.totalValue : (currMarket.priceTC - currData.costPrice) * currData.amount;
+            $(currRowId + ' .stock_info_cell_totalPL').css('color', tmpVal > 0 ? 'red;"' : tmpVal < 0 ? 'green' : 'black');
+            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(tmpVal, true));
+            tmpVal = _globalDataObj.stocks[stockId].advise;
+            tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
+            $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
+            $(currRowId + ' .stock_info_cell_advise_profit').text(tmpVal.stopProfitScope);
+            $(currRowId + ' .stock_info_cell_advise_loss').text(tmpVal.stopLossScope);
+            var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
+            var alertObj = checkAdviseScope(currData);
+            alertItem.attr('title', alertObj.title);
+            if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
+                alertItem.addClass('fa-spin');
+            } else {
+                alertItem.removeClass('fa-spin');
+            }
         }
+    }
+    catch (ex) {
+        console.log(stockId);
     }
 };
 
@@ -353,28 +369,14 @@ function initEvents() {
     $('#tab_Header_Stock_Info a').on('click', function (eventObj) {
         eventObj.preventDefault();
         var hrefStr = $(eventObj.currentTarget).attr('href');
-        var imgEl = $('#img_Stock_Info_K_Line');
-        var stockId = imgEl.attr('data-target');
-        var tmpURL = '';
-        stopRefereshKLine();
-        switch (hrefStr) {
-            case "#k-line-daily":
-                tmpURL = _dataURLSina.k_line_d + stockId;
-                break;
-            case "#k-line-weekly":
-                tmpURL = _dataURLSina.k_line_w + stockId;
-                break;
-            case "#k-line-monthly":
-                tmpURL = _dataURLSina.k_line_m + stockId;
-                break;
-            case "#time-sharing-plan":
-            default:
-                tmpURL = _dataURLSina.timeSharing_plans + stockId;
-                _intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", 5000);
-                break;
+        if (hrefStr == '#tab_KLine_Time_Sharing' && _intervalForRefTimeSharingPlans == null) {
+            var imgEl = $('#img_Stock_Info_Time_Sharing');
+            var stockId = imgEl.attr('data-target');
+            imgEl.attr('src', _dataURLSina.timeSharing_plans + stockId + '.gif?rnd=' + (new Date()).valueOf());
+            //_intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", _intervalForRefTimeSharingPlans);
+        } else {
+            stopRefereshKLine();
         }
-
-        imgEl.attr('src', tmpURL + '.gif?rnd=' + (new Date()).valueOf());
     });
 };
 
@@ -403,6 +405,7 @@ function initPage() {
 /*data item events*/
 function stopRefereshStockInfoModal() {
     window.clearInterval(_intervalForRefStockInfo);
+    _intervalForRefStockInfo = null;
 };
 
 function startRefereshStockInforModal(stockId) {
@@ -446,14 +449,36 @@ function startRefereshStockInforModal(stockId) {
         $('.rise-fall-item').css('color', 'green');
         $('#txt_Stock_Info_Price_Arrow').html('<i class="fas fa-arrow-circle-down"></i>');
     }
+
+    var tmpPrice;
+    var tmpTotalBuy = 0;
+    var tmpTotalSell = 0;
+    for (var i = 1; i < 6; i++) {
+        tmpPrice = tmpObj['bid_' + i + '_P'];
+        $('.five-position-table .position-b-' + i + '-p').text(tmpPrice.toFixed(2)).css('color', tmpPrice == tmpObj.priceYC ? "black" : tmpPrice > tmpObj.priceYC ? 'red' : 'green');
+        $('.five-position-table .position-b-' + i + '-a').text(tmpObj['bid_' + i + '_A']);
+        tmpPrice = tmpObj['auc_' + i + '_P'];
+        $('.five-position-table .position-s-' + i + '-p').text(tmpPrice.toFixed(2)).css('color', tmpPrice == tmpObj.priceYC ? "black" : tmpPrice > tmpObj.priceYC ? 'red' : 'green');
+        $('.five-position-table .position-s-' + i + '-a').text(tmpObj['auc_' + i + '_A'])
+        tmpTotalBuy += tmpObj['bid_' + i + '_A'];
+        tmpTotalSell += tmpObj['auc_' + i + '_A'];
+    }
+
+    $('.five-position-table .position-deal-p').text(tmpObj.priceTC.toFixed(2)).css('color', tmpObj.priceTC == tmpObj.priceYC ? "black" : tmpObj.priceTC > tmpObj.priceYC ? 'red' : 'green');
+    $('.five-position-table .inner-disc').text(tmpObj.amountSell);
+    $('.five-position-table .outer-disc').text(tmpObj.amountBuy);
+    tmpPrice = tmpTotalBuy - tmpTotalSell;
+    $('.five-position-table .entrust-rate').text(Math.abs(tmpPrice / (tmpTotalBuy + tmpTotalSell) * 100).toFixed(2) + '%').css('color', tmpPrice == 0 ? "black" : tmpPrice > 0 ? 'red' : 'green');
+    $('.five-position-table .entrust-deviation').text(Math.abs(tmpPrice)).css('color', tmpPrice == 0 ? "black" : tmpPrice > 0 ? 'red' : 'green');
 };
 
 function stopRefereshKLine() {
     window.clearInterval(_intervalForRefTimeSharingPlans);
+    _intervalForRefTimeSharingPlans = null;
 };
 
 function startRefereshKLine() {
-    var imgEl = $('#img_Stock_Info_K_Line');
+    var imgEl = $('#img_Stock_Info_Time_Sharing');
     if (imgEl.attr('src') == '') {
         imgEl.attr('src', _dataURLSina.timeSharing_plans + imgEl.attr('data-target') + '.gif');
     }
@@ -555,46 +580,52 @@ StockLoader.marketKeys = [
 StockLoader.market = function () {
     var dataArr, tmpVal, tmpKey, tmpType, tmpDefVal, tmpArray;
     for (var key in _globalDataObj.stocks) {
-        dataArr = window['v_' + key].split('~');
-        for (var i = 0; i < StockLoader.marketKeys.length; i++) {
-            tmpVal = (typeof dataArr[i] != 'undefined' ? dataArr[i] : '-');
-            tmpKey = StockLoader.marketKeys[i].key;
-            tmpType = StockLoader.marketKeys[i].type;
-            tmpDefVal = StockLoader.marketKeys[i].empty;
-            if (tmpType == 'f') {
-                tmpVal = !isNaN(tmpVal) ? parseFloat(tmpVal) : tmpDefVal;
-            } else if (tmpType == 'i') {
-                tmpVal = !isNaN(tmpVal) ? parseInt(tmpVal) : tmpDefVal;
-            } else if (tmpType == 'a') {
-                tmpArray = tmpVal.split('/');
-                if (tmpKey == "lastes_deal") {
-                    tmpVal = tmpArray.length == 3 ? tmpArray : [];
-                } else {
-                    tmpVal = [];
-                    for (var j = 0; j < tmpArray.length; j += 5) {
-                        var tmpSubObj = {
-                            time: (j == 0 ? tmpArray[j] : tmpArray[j].split('|')[1]),
-                            price: tmpArray[j + 1],
-                            amount: tmpArray[j + 2],
-                            flag: tmpArray[j + 3],
-                            value: tmpArray[j + 4]
-                        };
-
-                        tmpVal.push(tmpSubObj);
-                    }
-                }
-            } else if (tmpType == 'd') {
-                var tmpDate = new Date();
-                tmpDate.setYear(tmpVal.substr(0, 4));
-                tmpDate.setMonth(tmpVal.substr(4, 2));
-                tmpDate.setDate(tmpVal.substr(6, 2));
-                tmpDate.setHours(tmpVal.substr(8, 2));
-                tmpDate.setMinutes(tmpVal.substr(10, 2));
-                tmpDate.setSeconds(tmpVal.substr(12, 2));
-                tmpVal = tmpDate;
+        if (key.indexOf('sz') == 0 || key.indexOf('sh') == 0) {
+            if (!window['v_' + key]) {
+                console.log(key);
+                continue;
             }
+            dataArr = window['v_' + key].split('~');
+            for (var i = 0; i < StockLoader.marketKeys.length; i++) {
+                tmpVal = (typeof dataArr[i] != 'undefined' ? dataArr[i] : '-');
+                tmpKey = StockLoader.marketKeys[i].key;
+                tmpType = StockLoader.marketKeys[i].type;
+                tmpDefVal = StockLoader.marketKeys[i].empty;
+                if (tmpType == 'f') {
+                    tmpVal = !isNaN(tmpVal) ? parseFloat(tmpVal) : tmpDefVal;
+                } else if (tmpType == 'i') {
+                    tmpVal = !isNaN(tmpVal) ? parseInt(tmpVal) : tmpDefVal;
+                } else if (tmpType == 'a') {
+                    tmpArray = tmpVal.split('/');
+                    if (tmpKey == "lastes_deal") {
+                        tmpVal = tmpArray.length == 3 ? tmpArray : [];
+                    } else {
+                        tmpVal = [];
+                        for (var j = 0; j < tmpArray.length; j += 5) {
+                            var tmpSubObj = {
+                                time: (j == 0 ? tmpArray[j] : tmpArray[j].split('|')[1]),
+                                price: tmpArray[j + 1],
+                                amount: tmpArray[j + 2],
+                                flag: tmpArray[j + 3],
+                                value: tmpArray[j + 4]
+                            };
 
-            _globalDataObj.stocks[key].market[tmpKey] = tmpVal;
+                            tmpVal.push(tmpSubObj);
+                        }
+                    }
+                } else if (tmpType == 'd') {
+                    var tmpDate = new Date();
+                    tmpDate.setYear(tmpVal.substr(0, 4));
+                    tmpDate.setMonth(tmpVal.substr(4, 2));
+                    tmpDate.setDate(tmpVal.substr(6, 2));
+                    tmpDate.setHours(tmpVal.substr(8, 2));
+                    tmpDate.setMinutes(tmpVal.substr(10, 2));
+                    tmpDate.setSeconds(tmpVal.substr(12, 2));
+                    tmpVal = tmpDate;
+                }
+
+                _globalDataObj.stocks[key].market[tmpKey] = tmpVal;
+            }
         }
     }
 };
@@ -623,7 +654,8 @@ StockLoader.record = function (stockId) {
             date: currRec.attr('d'),
             time: currRec.attr('t'),
             price: isNaN(currRec.attr('p')) ? 0 : parseFloat(currRec.attr('p')),
-            amt: isNaN(currRec.attr('a')) ? 0 : parseInt(currRec.attr('a')),
+            amt: isNaN(currRec.attr('a')) ? 0 : Math.abs(parseInt(currRec.attr('a'))),
+            //flag: parseInt(currRec.attr('a')) > 0 ? 'b' : 's',
             flag: currRec.attr('f'),
             charge: isNaN(currRec.attr('c')) ? 0 : parseFloat(currRec.attr('c')),
             tax: isNaN(currRec.attr('x')) ? 0 : parseFloat(currRec.attr('x')),
@@ -754,4 +786,17 @@ function parseTextToFloat(value) {
     }
 
     return Number.NaN;
+};
+
+function aaaa() {
+    var cells = $('.stock_info_cell_totalPL');
+    var total = 0;
+    for (var i = 0; i < cells.length; i++) {
+        var val = $(cells[i]).text();
+        if (!isNaN(val) && val != '') {
+            total += parseFloat(val);
+        }
+    }
+
+    alert(total);
 }

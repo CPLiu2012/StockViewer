@@ -118,5 +118,13 @@
 }
 
 #stockInfoModal .detail-info-table .empty-col {
-    width:30px;
+    width: 30px;
+}
+
+.five-position-table .inner-disc {
+    color: green;
+}
+
+.five-position-table .outer-disc {
+    color: red;
 }
