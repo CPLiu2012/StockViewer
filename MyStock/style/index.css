@@ -7,6 +7,10 @@
     width: 50px;
 }
 
+.text-normal {
+    color: #006fa8;
+}
+
 .container-fluid.main-wrap {
     overflow-y: auto;
     overflow-x: hidden;
@@ -30,6 +34,10 @@
         border-bottom: solid 1px gray;
     }
 
+    .table th, .table td {
+        border: none;
+    }
+
 .table-striped tbody tr:hover {
     background-color: rgba(0, 0, 0, 0.2);
 }
@@ -47,84 +55,154 @@
     padding: 5px 15px;
 }
 
-#stockInfoModal .table th, .table td {
-    border: none;
-}
-
-.stock_info_cell_advise_buy {
-    font-weight: bold;
-    color: red;
-}
-
-.stock_info_cell_advise_profit {
-    font-weight: bold;
-    color: black;
-}
-
-.stock_info_cell_advise_loss {
-    font-weight: bold;
-    color: green;
-}
-
-.stock_info_cell_alert {
-    cursor: pointer;
-}
-
 /*Stock Infotmation Modal*/
-#stockInfoModal .rise-fall-item {
-    font-weight: bold;
-    width: 50px;
+#stockInfoModal {
 }
 
-#txt_Stock_Info_Current_Price, #txt_Stock_Info_Price_Arrow {
-    font-size: 25px;
-    text-align: center;
+    #stockInfoModal .stock_info_cell_advise_buy {
+        font-weight: bold;
+        color: red;
+    }
+
+    #stockInfoModal .stock_info_cell_advise_profit {
+        font-weight: bold;
+        color: black;
+    }
+
+    #stockInfoModal .stock_info_cell_advise_loss {
+        font-weight: bold;
+        color: green;
+    }
+
+    #stockInfoModal .stock_info_cell_alert {
+        cursor: pointer;
+    }
+
+    #stockInfoModal #txt_Stock_Info_Current_Price, #stockInfoModal #txt_Stock_Info_Price_Arrow {
+        font-size: 25px;
+        text-align: center;
+    }
+
+    #stockInfoModal .rise-fall-item {
+        font-weight: bold;
+        width: 50px;
+    }
+
+    #stockInfoModal .unit-text-span {
+        font-weight: bold;
+        padding-left: 2px;
+        color: black;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-1 {
+        font-weight: bold;
+        width: 40px;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-2 {
+        color: blue;
+        width: 50px;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-3 {
+        font-weight: bold;
+        width: 60px;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-4 {
+        color: blue;
+        width: 90px;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-5 {
+        font-weight: bold;
+        width: 40px;
+    }
+
+    #stockInfoModal .detail-info-table .cell-col-6 {
+        color: blue;
+        width: 60px;
+    }
+
+    #stockInfoModal .detail-info-table .empty-col {
+        width: 30px;
+    }
+
+    #stockInfoModal .five-position-table .inner-disc {
+        color: green;
+    }
+
+    #stockInfoModal .five-position-table .outer-disc {
+        color: red;
+    }
+
+/*Stock Records Modal*/
+#recordModal {
 }
 
-#stockInfoModal .unit-text-span {
-    font-weight: bold;
-    padding-left: 2px;
-    color: black;
+    #recordModal .stock-info-row {
+    }
+
+    #recordModal .modal-header {
+        border-top-left-radius: 9px;
+        border-top-right-radius: 9px;
+    }
+
+    #recordModal .modal-body {
+        border-bottom-left-radius: 9px;
+        border-bottom-right-radius: 9px;
+    }
+
+    #recordModal .stock-info-row .stock-name {
+        color: #26539b;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    #recordModal .stock-info-row .stock-code {
+    }
+
+    #recordModal .stock-info-row .current-price {
+        font-weight: bold;
+    }
+
+    #recordModal .deal-list-table td svg {
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    #recordModal button.btn-sm {
+        padding: 0px;
+        border: none;
+    }
+
+.alert-remove-record-item-mask, .alert-add-record-item-mask {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: none;
+    background-color: rgba(0,0,0,0.4);
 }
 
-#stockInfoModal .detail-info-table .cell-col-1 {
-    font-weight: bold;
-    width: 40px;
+#alert_Remove_Record_Item, #alert_Add_Record_Item {
+    position: absolute;
+    margin: 10px;
+    top: 0px;
+    width: calc(100% - 20px);
 }
 
-#stockInfoModal .detail-info-table .cell-col-2 {
-    color: blue;
-    width: 50px;
-}
+    #alert_Remove_Record_Item table, #alert_Add_Record_Item table {
+        background-color: rgba(255,255,255,0.7);
+        border: none;
+        border-radius: 5px;
+    }
 
-#stockInfoModal .detail-info-table .cell-col-3 {
-    font-weight: bold;
-    width: 60px;
-}
+        #alert_Remove_Record_Item table th, #alert_Remove_Record_Item table td {
+            font-size: 14px;
+        }
 
-#stockInfoModal .detail-info-table .cell-col-4 {
-    color: blue;
-    width: 80px;
-}
-
-#stockInfoModal .detail-info-table .cell-col-5 {
-    font-weight: bold;
-    width: 40px;
-}
-
-#stockInfoModal .detail-info-table .cell-col-6 {
-    color: blue;
-    width: 60px;
-}
-
-#stockInfoModal .detail-info-table .empty-col {
-    width: 30px;
-}
-
-.five-position-table .inner-disc {
-    color: green;
-}
-
-.five-position-table .outer-disc {
-    color: red;
-}
+    #alert_Remove_Record_Item button, #alert_Add_Record_Item button {
+        margin: 5px;
+    }

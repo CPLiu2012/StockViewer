@@ -27,7 +27,16 @@
             </form>
         </nav>
     </header>
-    <div class="container-fluid main-wrap">
+    <div class="container-fluid main-wrap" style="padding-top: 5px;">
+        <div class="row">
+            <div class="col">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btn_View_All">全部</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btn_View_Focus">关注</button>
+                <button type="button" class="btn btn-sm btn-warning" id="btn_View_Position">持仓</button>
+                <button type="button" class="btn btn-sm btn-success" id="btn_View_Loss">过往亏损</button>
+                <button type="button" class="btn btn-sm btn-danger" id="btn_View_Profit">过往盈利</button>
+            </div>
+        </div>
         <div class="row h-100">
             <div class="col  h-100">
                 <table class="table table-striped main-table">
@@ -63,27 +72,6 @@
         </div>
     </div>
     <footer style="position:absolute; width:100%; height:30px; background-color: lightgray;">    </footer>
-    <div class="modal fade bd-example-modal-lg" id="recordModal" tabindex="-1" role="dialog" aria-labelledby="recordModalLabel" aria-hidden="true" data-backdrop="false">
-        <div class="modal-dialog modal-lg" role="document" style="max-width:850px;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title" id="recordModalLabel">交易记录<span id="txt_Record_Stock_Name" style="padding-left:10px; color:blue; font-weight:bold;"></span></h6>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col">
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
     <div class="modal fade bd-example-modal-lg" id="stockInfoModal" tabindex="-1" role="dialog" aria-labelledby="stockInfoModalLabel" aria-hidden="true" data-backdrop="false">
         <div class="modal-dialog modal-lg" role="document" style="max-width:850px;">
             <div class="modal-content">
@@ -286,7 +274,7 @@
                                                         </ul>
                                                         <div class="tab-content" style="width:545px; height:300px;">
                                                             <div class="tab-pane active" id="tab_KLine_Time_Sharing" role="tabpanel">
-                                                                <img class="img-fluid" src="http://image.sinajs.cn/newchart/min/n/" id="img_Stock_Info_Time_Sharing" />
+                                                                <img class="img-fluid" src="" id="img_Stock_Info_Time_Sharing" />
                                                             </div>
                                                             <div class="tab-pane" id="tab_KLine_Daily" role="tabpanel">
                                                                 <img class="img-fluid" src="http://image.sinajs.cn/newchart/daily/n/" id="img_Stock_Info_K_Line_Daily" />
@@ -384,6 +372,78 @@
             </div>
         </div>
     </div>
+    <div class="modal fade bd-example-modal-lg" id="recordModal" tabindex="-1" role="dialog" aria-labelledby="recordModalLabel">
+        <div class="modal-dialog modal-lg" role="document" style="max-width:850px;">
+            <div class="modal-content" style="border: 2px solid rgba(0, 0, 0, 0.5);border-radius: 10px;">
+                <div class="modal-header bg-info text-white">
+                    <h6 class="modal-title font-weight-bold" id="recordModalLabel">交易记录</h6>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body bg-light" style="padding: 5px 0px;">
+                    <div class="container-fluid">
+                        <div class="row stock-info-row">
+                            <div class="col">
+                                <span class="stock-name"></span>
+                                <span class="stock-code" style="padding:0px 10px;"></span>
+                                <span>当前价格: </span>
+                                <span class="current-price" style="padding:0px 10px;"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>买入均价</th>
+                                            <th>持有量(股)</th>
+                                            <th>当前市值</th>
+                                            <th>每股盈亏</th>
+                                            <th>持仓盈亏</th>
+                                            <th>总盈亏</th>
+                                            <th>盈亏率</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="position-detail-row text-center text-normal">
+                                            <td class="cell-cost-price"></td>
+                                            <td class="cell-amount"></td>
+                                            <td class="cell-current-total-value"></td>
+                                            <td class="cell-profit-loss-unit"></td>
+                                            <td class="cell-profit-loss-position font-weight-bold"></td>
+                                            <td class="cell-profit-loss-total font-weight-bold"></td>
+                                            <td class="cell-profit-loss-rate font-weight-bold"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <table class="table table-sm table-striped table-bordered text-center deal-list-table">
+                                    <thead>
+                                        <tr>
+                                            <th>序号</th>
+                                            <th>类型</th>
+                                            <th>日期</th>
+                                            <th>数量</th>
+                                            <th>价格</th>
+                                            <th>交易费</th>
+                                            <th>印花税</th>
+                                            <th>其他费用</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="deal-detail-list-tbody text-normal"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="modal fade" id="adviseModal" tabindex="-1" role="dialog" aria-labelledby="adviseModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -398,6 +458,91 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-primary">保存</button>
                     <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert-remove-record-item-mask">
+        <div class="alert alert-danger" id="alert_Remove_Record_Item" role="alert">
+            <h6 class="alert-heading font-weight-bold">确定删除此条交易记录吗, 删除后不可恢复!</h6>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        <table class="table table-sm table-bordered text-center">
+                            <thead>
+                                <tr>
+                                    <th>类型</th>
+                                    <th>日期</th>
+                                    <th>数量</th>
+                                    <th>价格</th>
+                                    <th>交易费</th>
+                                    <th>印花税</th>
+                                    <th>其他费用</th>
+                                </tr>
+                            </thead>
+                            <tbody class="remove-record-item-tbody text-normal"></tbody>
+                        </table>
+                    </div>
+                    <div class="col-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-success btn-reomve-record-item-OK">确定</button>
+                        <button type="button" class="btn btn-sm btn-primary btn-reomve-record-item-Cancel">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert-add-record-item-mask">
+        <div class="alert alert-danger" id="alert_Add_Record_Item" role="alert">
+            <h6 class="alert-heading font-weight-bold">添加交易记录!</h6>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        <table class="table table-sm table-bordered text-center">
+                            <thead>
+                                <tr>
+                                    <th>类型</th>
+                                    <th>日期</th>
+                                    <th>数量</th>
+                                    <th>价格</th>
+                                    <th>交易费</th>
+                                    <th>印花税</th>
+                                    <th>其他费用</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <select class="form-control form-control-sm" id="sel_Add_Record_Item_Type" style="width: 70px;">
+                                            <option value="1">买入</option>
+                                            <option value="-1">卖出</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="date" id="txt_Add_Record_Item_Date" value="2011-08-19T13:45:00" >
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Amount" style="width: 70px;">
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Price" style="width: 70px;">
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Change" style="width: 70px;">
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Tax" style="width: 70px;">
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Fee" style="width: 70px;">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-success btn-reomve-record-item-OK">确定</button>
+                        <button type="button" class="btn btn-sm btn-primary btn-reomve-record-item-Cancel">取消</button>
+                    </div>
                 </div>
             </div>
         </div>

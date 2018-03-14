@@ -4,6 +4,8 @@
     stockIds: "",
 };
 
+var _globalFilterDataList = [];
+
 var _historyDoc = null;
 
 var _dataURL = {
@@ -53,9 +55,11 @@ var _dataURLSina = {
 var _intervalForRefMainTB_Time = 1000;
 var _intervalForRefStockInfo_Time = 1000;
 var _intervalForRefTimeSharingPlans_Time = 5000;
+var _intervalForRefRecordModal_Time = 2000;
 var _intervalForRefMainTB = null;
 var _intervalForRefStockInfo = null;
 var _intervalForRefTimeSharingPlans = null;
+var _intervalForRefRecordModal = null;
 
 function _loadStockList() {
     _historyDoc = $(LoadXMLFile('recordData.xml'));
@@ -72,22 +76,37 @@ function _loadStockList() {
         }
     }
 
-    $.ajax({
-        url: _dataURL.detail_now + _globalDataObj.stockIds,
-        dataType: "script",
-        cache: "false",
-        type: "GET",
-        context: this,
-        success: function () {
-            StockLoader.market();
-            buildMainTable();
-        },
-        error: function () { }
-    });
+    loadStockData();
 };
 
-function onClickRecordButton(eventObj) {
+function loadStockData(stockIdArr) {
+    var inputArray = (typeof stockIdArr == 'undefined' ? _globalDataObj.stockIds.split(',') : stockIdArr);
+    var tmpArr = inputArray.splice(0, 50);
+    if (tmpArr.length > 0) {
+        $.ajax({
+            url: _dataURL.detail_now + tmpArr.join(','),
+            dataType: "script",
+            cache: "false",
+            type: "GET",
+            context: this,
+            success: function () {
+                if (inputArray.length > 0) {
+                    loadStockData(inputArray)
+                } else {
+                    StockLoader.market();
+                    buildMainTable();
+                }
+            },
+            error: function () { }
+        });
+    }
+}
 
+function onClickRecordButton(eventObj) {
+    var stockId = $(eventObj.currentTarget).attr('data-stockid');
+    refereshRecordTitle(stockId);
+    refereshRecordDetail(stockId);
+    refereshRecordSummary(stockId);
 };
 
 function onClickAdviseButton(eventObj) {
@@ -118,10 +137,15 @@ function onClickStockInfoAlert(eventObj) {
 };
 
 function buildMainTable() {
-    var tmpHTMLArr = [];
-    for (var i = 0; i < _globalDataObj.list.length; i++) {
-        tmpHTMLArr = tmpHTMLArr.concat(buildStockDataRow(_globalDataObj.list[i].id, i));
+    if (_globalFilterDataList.length == 0) {
+        _globalFilterDataList = _globalDataObj.list;
     }
+
+    var tmpHTMLArr = [];
+    for (var i = 0; i < _globalFilterDataList.length; i++) {
+        tmpHTMLArr = tmpHTMLArr.concat(buildStockDataRow(_globalFilterDataList[i].id, i));
+    }
+
     $('.main-table-body').empty();
     $('.main-table-body').append($(tmpHTMLArr.join('')));
     $('.stock_info_cell_alert .fa-bell').click(onClickStockInfoAlert);
@@ -129,7 +153,8 @@ function buildMainTable() {
     $('.data-button.record-btn').click(onClickRecordButton);
     $('.data-button.advise-btn').click(onClickAdviseButton);
     $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
-    //_intervalForRefMainTB = window.setInterval("refereshDataTable();", _intervalForRefMainTB_Time);
+    startRefereshDataTable();
+    //_intervalForRefMainTB = window.setInterval("startRefereshDataTable();", _intervalForRefMainTB_Time);
 };
 
 function buildStockDataRow(stockId, index) {
@@ -194,56 +219,6 @@ function addStockToDataTable(stockId) {
     $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
 };
 
-function stopRefereshDataTable() {
-    window.clearInterval(_intervalForRefMainTB);
-    _intervalForRefMainTB = null;
-};
-
-function refereshDataTable() {
-    var currData, currMarket, tmpVal, tmpColor, stockId, currRowId;
-    try {
-        for (var i = 0; i < _globalDataObj.list.length; i++) {
-            stockId = _globalDataObj.list[i].id;
-            currData = _globalDataObj.stocks[stockId];
-            currMarket = currData.market;
-            currRowId = '#stock_info_row_' + stockId;
-            tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
-            $(currRowId).css('color', tmpColor);
-            $(currRowId + ' .stock_info_cell_symbol').text(_globalDataObj.list[i].symbol);
-            $(currRowId + ' .stock_info_cell_priceYC').text(formatValue(currMarket.priceYC, true));
-            $(currRowId + ' .stock_info_cell_priceTO').text(formatValue(currMarket.priceTO, true));
-            $(currRowId + ' .stock_info_cell_priceTC').text(formatValue(currMarket.priceTC, true));
-            $(currRowId + ' .stock_info_cell_rise_fall').text(formatValue(currMarket.rise_fall, true));
-            $(currRowId + ' .stock_info_cell_rise_fall_ratio').text(formatValue(currMarket.rise_fall_ratio, true) + '%');
-            $(currRowId + ' .stock_info_cell_priceTX').text(formatValue(currMarket.priceTX, true));
-            $(currRowId + ' .stock_info_cell_priceTM').text(formatValue(currMarket.priceTM, true));
-            $(currRowId + ' .stock_info_cell_costPrice').text(formatValue(currData.costPrice, true));
-            $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
-            $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalValue, true));
-            $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
-            tmpVal = currData.amount == 0 ? currData.totalValue : (currMarket.priceTC - currData.costPrice) * currData.amount;
-            $(currRowId + ' .stock_info_cell_totalPL').css('color', tmpVal > 0 ? 'red;"' : tmpVal < 0 ? 'green' : 'black');
-            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(tmpVal, true));
-            tmpVal = _globalDataObj.stocks[stockId].advise;
-            tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
-            $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
-            $(currRowId + ' .stock_info_cell_advise_profit').text(tmpVal.stopProfitScope);
-            $(currRowId + ' .stock_info_cell_advise_loss').text(tmpVal.stopLossScope);
-            var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
-            var alertObj = checkAdviseScope(currData);
-            alertItem.attr('title', alertObj.title);
-            if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
-                alertItem.addClass('fa-spin');
-            } else {
-                alertItem.removeClass('fa-spin');
-            }
-        }
-    }
-    catch (ex) {
-        console.log(stockId);
-    }
-};
-
 function checkAdviseScope(stockDate) {
     var alertObj = { alert: false, title: '' };
     var advises = stockDate.advise;
@@ -267,20 +242,6 @@ function checkAdviseScope(stockDate) {
     }
 
     return alertObj;
-};
-
-function formatValue(value, dash) {
-    if (typeof dash == 'boolean' && dash) {
-        if (value == 0) {
-            value = "-";
-        } else {
-            value = value.toFixed(2);
-        }
-    } else {
-        value = value.toFixed(2)
-    }
-
-    return value;
 };
 
 function saveData() {
@@ -378,6 +339,104 @@ function initEvents() {
             stopRefereshKLine();
         }
     });
+
+    $('#btn_View_All').on('click', function (eventObj) {
+        stopRefereshDataTable();
+        filterStocksByType('all');
+        buildMainTable();
+    });
+
+    $('#btn_View_Focus').on('click', function (eventObj) {
+        stopRefereshDataTable();
+        filterStocksByType('focus');
+        buildMainTable();
+    });
+
+    $('#btn_View_Position').on('click', function (eventObj) {
+        stopRefereshDataTable();
+        filterStocksByType('position');
+        buildMainTable();
+    });
+
+    $('#btn_View_Loss').on('click', function (eventObj) {
+        stopRefereshDataTable();
+        filterStocksByType('loss');
+        buildMainTable();
+    });
+
+    $('#btn_View_Profit').on('click', function (eventObj) {
+        stopRefereshDataTable();
+        filterStocksByType('profit');
+        buildMainTable();
+    });
+
+    $('#recordModal').on('hidden.bs.modal', function (e) {
+        stopRefereshRecordModal();
+    });
+
+    $('.btn-reomve-record-item-Cancel').on('click', function () {
+        $('.alert-remove-record-item-mask').hide();
+    });
+
+    $('.btn-reomve-record-item-OK').on('click', function () {
+        $('.alert-remove-record-item-mask').hide();
+        var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+        var stockId = tmpStr.split('|')[0];
+        var recordIndex = parseInt(tmpStr.split('|')[1]);
+        var recordList = _globalDataObj.stocks[stockId].records;
+        var tmpHTML, recObj;
+        if (recordList.length > recordIndex && recordIndex >= 0) {
+            recordList.splice(recordIndex, 1);
+        }
+
+        refereshRecordTitle(stockId);
+        refereshRecordDetail(stockId);
+        refereshRecordSummary(stockId);
+    });
+};
+
+function filterStock_Position() {
+    var tmpStock;
+    var retList = [];
+    for (var i = 0; i < _globalDataObj.list.length; i++) {
+        tmpStock = _globalDataObj.stocks[_globalDataObj.list[i].id];
+        if (tmpStock.amount > 0) {
+            retList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+        }
+    }
+
+    return retList;
+};
+
+function filterStock_ProfitLoss(flag) {
+    var tmpStock;
+    var retList = [];
+    for (var i = 0; i < _globalDataObj.list.length; i++) {
+        tmpStock = _globalDataObj.stocks[_globalDataObj.list[i].id];
+        if (tmpStock.amount == 0) {
+            if ((flag == 1 && tmpStock.totalPL >= 0) || (flag == -1 && tmpStock.totalPL < 0)) {
+                retList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+            }
+        }
+    }
+
+    return retList;
+}
+
+function filterStocksByType(type) {
+    switch (type) {
+        case 'position':
+            _globalFilterDataList = filterStock_Position();
+            break;
+        case 'profit':
+        case 'loss':
+            _globalFilterDataList = filterStock_ProfitLoss(type == "loss" ? -1 : 1);
+            break;
+        case 'all':
+        default:
+            _globalFilterDataList = _globalDataObj.list
+            break;
+    }
 };
 
 function getFormatedStockId() {
@@ -399,10 +458,10 @@ function getFormatedStockId() {
 function initPage() {
     _loadStockList();
     initEvents();
-    $('.main-wrap').height($('body').height() - $('header').height() - $('footer').height());
+    $('.main-wrap').height($('body').height() - $('header').height() - $('footer').height() - 5);
 };
 
-/*data item events*/
+/*Referesh Interval Function*/
 function stopRefereshStockInfoModal() {
     window.clearInterval(_intervalForRefStockInfo);
     _intervalForRefStockInfo = null;
@@ -484,45 +543,92 @@ function startRefereshKLine() {
     }
 
     imgEl.attr('src', imgEl.attr('src').split('?')[0] + '?rnd=' + (new Date()).valueOf());
-}
+};
 
-/*
-1. 0: 未知 
-2. 1: 名字 
-3. 2: 代码 
-4. 3: 当前价格 
-5. 4: 昨收 
-6. 5: 今开 
-7. 6: 成交量（手） 
-8. 7: 外盘 
-9. 8: 内盘 
-10. 9: 买一 
-11. 10: 买一量（手） 
-12. 11-18: 买二 买五 
-13. 19: 卖一 
-14. 20: 卖一量 
-15. 21-28: 卖二 卖五 
-16. 29: 最近逐笔成交 
-17. 30: 时间 
-18. 31: 涨跌 
-19. 32: 涨跌% 
-20. 33: 最高 
-21. 34: 最低 
-22. 35: 价格/成交量（手）/成交额 
-23. 36: 成交量（手） 
-24. 37: 成交额（万） 
-25. 38: 换手率 
-26. 39: 市盈率 
-27. 40: 
-28. 41: 最高 
-29. 42: 最低 
-30. 43: 振幅 
-31. 44: 流通市值 
-32. 45: 总市值 
-33. 46: 市净率 
-34. 47: 涨停价 
-35. 48: 跌停价
-*/
+function stopRefereshDataTable() {
+    window.clearInterval(_intervalForRefMainTB);
+    _intervalForRefMainTB = null;
+};
+
+function startRefereshDataTable() {
+    var currData, currMarket, tmpVal, tmpColor, stockId, currRowId;
+    try {
+        for (var i = 0; i < _globalFilterDataList.length; i++) {
+            stockId = _globalFilterDataList[i].id;
+            currData = _globalDataObj.stocks[stockId];
+            currMarket = currData.market;
+            currRowId = '#stock_info_row_' + stockId;
+            tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
+            $(currRowId).css('color', tmpColor);
+            $(currRowId + ' .stock_info_cell_symbol').text(_globalFilterDataList[i].symbol);
+            $(currRowId + ' .stock_info_cell_priceYC').text(formatValue(currMarket.priceYC, true));
+            $(currRowId + ' .stock_info_cell_priceTO').text(formatValue(currMarket.priceTO, true));
+            $(currRowId + ' .stock_info_cell_priceTC').text(formatValue(currMarket.priceTC, true));
+            $(currRowId + ' .stock_info_cell_rise_fall').text(formatValue(currMarket.rise_fall, true));
+            $(currRowId + ' .stock_info_cell_rise_fall_ratio').text(formatValue(currMarket.rise_fall_ratio, true) + '%');
+            $(currRowId + ' .stock_info_cell_priceTX').text(formatValue(currMarket.priceTX, true));
+            $(currRowId + ' .stock_info_cell_priceTM').text(formatValue(currMarket.priceTM, true));
+            $(currRowId + ' .stock_info_cell_costPrice').text(formatValue(currData.costPrice, true));
+            $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
+            $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalCost, true));
+            $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
+            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(currData.totalPL, true)).css('color', currData.totalPL == 0 ? (currData.totalPL > 0 ? "red" : "green") : "black");
+            tmpVal = _globalDataObj.stocks[stockId].advise;
+            tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
+            $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
+            $(currRowId + ' .stock_info_cell_advise_profit').text(tmpVal.stopProfitScope);
+            $(currRowId + ' .stock_info_cell_advise_loss').text(tmpVal.stopLossScope);
+            var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
+            var alertObj = checkAdviseScope(currData);
+            alertItem.attr('title', alertObj.title);
+            if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
+                alertItem.addClass('fa-spin');
+            } else {
+                alertItem.removeClass('fa-spin');
+            }
+        }
+    }
+    catch (ex) {
+        console.log(stockId);
+    }
+};
+
+/*Stock Data Loader*/
+//1. 0: 未知 
+//2. 1: 名字 
+//3. 2: 代码 
+//4. 3: 当前价格 
+//5. 4: 昨收 
+//6. 5: 今开 
+//7. 6: 成交量（手） 
+//8. 7: 外盘 
+//9. 8: 内盘 
+//10. 9: 买一 
+//11. 10: 买一量（手） 
+//12. 11-18: 买二 买五 
+//13. 19: 卖一 
+//14. 20: 卖一量 
+//15. 21-28: 卖二 卖五 
+//16. 29: 最近逐笔成交 
+//17. 30: 时间 
+//18. 31: 涨跌 
+//19. 32: 涨跌% 
+//20. 33: 最高 
+//21. 34: 最低 
+//22. 35: 价格/成交量（手）/成交额 
+//23. 36: 成交量（手） 
+//24. 37: 成交额（万） 
+//25. 38: 换手率 
+//26. 39: 市盈率 
+//27. 40: 
+//28. 41: 最高 
+//29. 42: 最低 
+//30. 43: 振幅 
+//31. 44: 流通市值 
+//32. 45: 总市值 
+//33. 46: 市净率 
+//34. 47: 涨停价 
+//35. 48: 跌停价
 var StockLoader = {};
 
 StockLoader.marketKeys = [
@@ -627,6 +733,8 @@ StockLoader.market = function () {
                 _globalDataObj.stocks[key].market[tmpKey] = tmpVal;
             }
         }
+
+        StockLoader.calcCostPrice(key);
     }
 };
 
@@ -638,11 +746,11 @@ StockLoader.history = function (stockId) {
         advise: [],
         amount: 0,
         costPrice: 0,
-        totalValue: 0
+        totalCost: 0,
+        totalPL: 0
     };
     StockLoader.record(stockId);
     StockLoader.advise(stockId);
-    StockLoader.calcCostPrice(stockId);
 };
 
 StockLoader.record = function (stockId) {
@@ -717,25 +825,163 @@ StockLoader.advise = function (stockId) {
 };
 
 StockLoader.calcCostPrice = function (stockId) {
-    var recs = _globalDataObj.stocks[stockId].records;
+    var stockObj = _globalDataObj.stocks[stockId];
+    var tmpData = StockLoader.calcSummaryData(stockId);
+    stockObj.amount = tmpData.amount;
+    stockObj.totalCost = tmpData.cost;
+    stockObj.costPrice = tmpData.price;
+    stockObj.totalPL = tmpData.PL;
+};
+
+StockLoader.calcSummaryData = function (stockId) {
+    var stockObj = _globalDataObj.stocks[stockId];
+    var recs = stockObj.records;
     var price, amount, flag, cost, tax, fee;
     var totalAmount = 0;
-    var totalValue = 0;
+    var totalBuy = 0;
+    var totalSell = 0;
+    var totalFee = 0;
     for (var i = 0; i < recs.length; i++) {
+        totalFee += recs[i].charge + recs[i].fee + recs[i].tax;
         if (recs[i].flag == "b") {
             totalAmount += recs[i].amt;
-            totalValue += recs[i].amt * recs[i].price + recs[i].charge + recs[i].fee;
+            totalBuy += recs[i].amt * recs[i].price;
         } else {
             totalAmount -= recs[i].amt;
-            totalValue -= recs[i].amt * recs[i].price - recs[i].charge - recs[i].tax - recs[i].fee;
+            totalSell += recs[i].amt * recs[i].price;
         }
     }
 
-    _globalDataObj.stocks[stockId].amount = totalAmount;
-    _globalDataObj.stocks[stockId].costPrice = (totalAmount == 0 ? 0 : totalValue / totalAmount);
-    _globalDataObj.stocks[stockId].totalValue = totalValue;
+    var totalCost = totalBuy - totalSell + totalFee;
+    var costPrice = (totalAmount == 0 ? 0 : totalCost / totalAmount);
+    return {
+        amount: totalAmount,
+        cost: (totalAmount == 0 ? 0 : totalCost),
+        price: (totalAmount == 0 ? 0 : costPrice),
+        PL: totalSell - totalBuy - totalFee + (stockObj.market.priceTC - costPrice) * totalAmount
+    }
+}
+
+/*Record Modal*/
+function startRefereshRecordModal(stockId) {
+    var dataObj = _globalDataObj.stocks[stockId].market;
+    $('#recordModal .stock-info-row .current-price').text(dataObj.priceTC);
+    $('#recordModal .stock-info-row .current-price').css('color', (dataObj.priceTC == dataObj.priceYC ? "black" : dataObj.priceTC > dataObj.priceYC ? "red" : "green"));
 };
 
+function stopRefereshRecordModal() {
+    window.clearInterval(_intervalForRefRecordModal);
+};
+
+function refereshRecordTitle(stockId) {
+    var dataObj = _globalDataObj.stocks[stockId].market;
+    $('#recordModal .stock-info-row .stock-name').text(dataObj.name);
+    $('#recordModal .stock-info-row .stock-code').text('(' + dataObj.id + ')');
+    $('#recordModal .stock-info-row .current-price').text(dataObj.priceTC);
+    _intervalForRefRecordModal = window.setInterval('startRefereshRecordModal("' + stockId + '");', _intervalForRefRecordModal_Time);
+};
+
+function refereshRecordSummary(stockId) {
+    var stockObj = _globalDataObj.stocks[stockId].market;
+    var summaryObj = StockLoader.calcSummaryData(stockId);
+    var tmpColor;
+    if (summaryObj.amount > 0) {
+        var tmpPLUnit = stockObj.priceTC - summaryObj.price;
+        $('#recordModal .position-detail-row .cell-cost-price').text(summaryObj.price.toFixed(2));
+        $('#recordModal .position-detail-row .cell-amount').text(summaryObj.amount);
+        $('#recordModal .position-detail-row .cell-current-total-value').text(stockObj.priceTC * summaryObj.amount);
+        $('#recordModal .position-detail-row .cell-profit-loss-unit').text(tmpPLUnit.toFixed(2));
+        var tmpColor = stockObj.priceTC == stockObj.priceYC ? "black" : stockObj.priceTC > stockObj.priceYC ? "red" : "green"
+        $('#recordModal .position-detail-row .cell-profit-loss-position').text((tmpPLUnit * summaryObj.amount).toFixed(2)).css('color', tmpColor);
+        $('#recordModal .position-detail-row .cell-profit-loss-total').text('-').css('color', tmpColor);
+        $('#recordModal .position-detail-row .cell-profit-loss-rate').text((tmpPLUnit / summaryObj.price * 100).toFixed(2) + '%').css('color', tmpColor);
+    } else {
+        $('#recordModal .position-detail-row .cell-cost-price').text('-');
+        $('#recordModal .position-detail-row .cell-amount').text('-');
+        $('#recordModal .position-detail-row .cell-current-total-value').text('-');
+        $('#recordModal .position-detail-row .cell-profit-loss-unit').text('-');
+        $('#recordModal .position-detail-row .cell-profit-loss-position').text('-');
+        $('#recordModal .position-detail-row .cell-profit-loss-total').text(summaryObj.PL.toFixed(2)).css('color', summaryObj.PL.value < 0 ? "green" : "red");
+        $('#recordModal .position-detail-row .cell-profit-loss-rate').text('-');
+    }
+};
+
+function refereshRecordDetail(stockId) {
+    var tbody = $('#recordModal .deal-detail-list-tbody');
+    tbody.empty();
+    var recordList = _globalDataObj.stocks[stockId].records;
+    var tmpHTML, recObj;
+    for (var i = 0; i < recordList.length; i++) {
+        tmpHTML = [];
+        recObj = recordList[i];
+        tmpHTML.push('<tr>')
+        tmpHTML.push('  <th scope="row">' + (i + 1) + '</th>');
+        tmpHTML.push('  <td>' + (recObj.flag == "b" ? '买入' : '卖出') + '</td>');
+        tmpHTML.push('  <td>' + formatDateString(recObj.date) + '</td>');
+        tmpHTML.push('  <td class="text-right">' + recObj.amt + '</td>');
+        tmpHTML.push('  <td class="text-right">' + recObj.price.toFixed(2) + '</td>');
+        tmpHTML.push('  <td class="text-right">' + recObj.charge.toFixed(2) + '</td>');
+        tmpHTML.push('  <td class="text-right">' + recObj.tax.toFixed(2) + '</td>');
+        tmpHTML.push('  <td class="text-right">' + recObj.fee.toFixed(2) + '</td>');
+        tmpHTML.push('  <td>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-record-item-edit" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-edit"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-record-item-remove" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-trash-alt"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('  </td>');
+        tmpHTML.push('</tr>');
+        tbody.append($(tmpHTML.join('')));
+    }
+
+    $('#recordModal .deal-detail-list-tbody .btn-record-item-edit').unbind();
+    $('#recordModal .deal-detail-list-tbody .btn-record-item-remove').unbind();
+    $('#recordModal .deal-detail-list-tbody .btn-record-item-edit').click(startEditRecordItem);
+    $('#recordModal .deal-detail-list-tbody .btn-record-item-remove').click(removeRecordItem);
+};
+
+function startEditRecordItem(eventObj) {
+    var tmpStr = $(eventObj.currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var recordIndex = parseInt(tmpStr.split('|')[1]);
+    adjustRecordItemEditAlert(stockId, recordIndex);
+    $('.alert-add-record-item-mask').show();
+};
+
+function adjustRecordItemEditAlert(stockId, recordIndex) {
+    //$('.btn-add-record-item-OK').attr('data-target', tmpStr);
+
+}
+
+function removeRecordItem(eventObj) {
+    var tmpStr = $(eventObj.currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var recordIndex = parseInt(tmpStr.split('|')[1]);
+    var tbody = $('#alert_Remove_Record_Item .remove-record-item-tbody');
+    tbody.empty();
+    var recordList = _globalDataObj.stocks[stockId].records;
+    var tmpHTML, recObj;
+    if (recordList.length > recordIndex && recordIndex >= 0) {
+        tmpHTML = [];
+        recObj = recordList[recordIndex];
+        tmpHTML.push('<tr class="text-center">')
+        tmpHTML.push('  <td>' + (recObj.flag == "b" ? '买入' : '卖出') + '</td>');
+        tmpHTML.push('  <td>' + formatDateString(recObj.date) + '</td>');
+        tmpHTML.push('  <td>' + recObj.amt + '</td>');
+        tmpHTML.push('  <td>' + recObj.price.toFixed(2) + '</td>');
+        tmpHTML.push('  <td>' + recObj.charge.toFixed(2) + '</td>');
+        tmpHTML.push('  <td>' + recObj.tax.toFixed(2) + '</td>');
+        tmpHTML.push('  <td>' + recObj.fee.toFixed(2) + '</td>');
+        tmpHTML.push('</tr>');
+        tbody.append($(tmpHTML.join('')));
+    }
+
+    $('.btn-reomve-record-item-OK').attr('data-target', tmpStr);
+    $('.alert-remove-record-item-mask').show();
+};
+
+/*Global Function*/
 function writeXMLString() {
     var xmlStrArr = [];
     xmlStrArr.push('<root>');
@@ -786,6 +1032,26 @@ function parseTextToFloat(value) {
     }
 
     return Number.NaN;
+};
+
+function formatDateString(source) {
+    var tmpArr = source.split('/');
+    var retVal = tmpArr[0] + '-' + (Array(2).join('0') + tmpArr[1]).slice(-2) + '-' + (Array(2).join('0') + tmpArr[2]).slice(-2);
+    return retVal;
+};
+
+function formatValue(value, dash) {
+    if (typeof dash == 'boolean' && dash) {
+        if (value == 0) {
+            value = "-";
+        } else {
+            value = value.toFixed(2);
+        }
+    } else {
+        value = value.toFixed(2)
+    }
+
+    return value;
 };
 
 function aaaa() {
