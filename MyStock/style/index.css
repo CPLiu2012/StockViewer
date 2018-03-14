@@ -166,7 +166,7 @@
         font-weight: bold;
     }
 
-    #recordModal .deal-list-table td svg {
+    #recordModal .record-item-list-table td svg {
         cursor: pointer;
         font-size: 16px;
     }
@@ -176,7 +176,21 @@
         border: none;
     }
 
-.alert-remove-record-item-mask, .alert-add-record-item-mask {
+    #recordModal .record-item-edit-field {
+        display: none;
+        height: 25px;
+        padding: 0px 5px;
+    }
+
+    #recordModal .btn-record-item-edit-cancel{
+        display:none;
+    }
+
+    #recordModal .btn-record-item-edit-ok{
+        display:none;
+    }
+
+.alert-remove-record-item-mask {
     position: absolute;
     top: 0px;
     width: 100%;
@@ -186,23 +200,23 @@
     background-color: rgba(0,0,0,0.4);
 }
 
-#alert_Remove_Record_Item, #alert_Add_Record_Item {
+#alert_Remove_Record_Item {
     position: absolute;
     margin: 10px;
     top: 0px;
     width: calc(100% - 20px);
 }
 
-    #alert_Remove_Record_Item table, #alert_Add_Record_Item table {
+    #alert_Remove_Record_Item table {
         background-color: rgba(255,255,255,0.7);
         border: none;
         border-radius: 5px;
     }
 
-        #alert_Remove_Record_Item table th, #alert_Remove_Record_Item table td {
+        #alert_Remove_Record_Item table th {
             font-size: 14px;
         }
 
-    #alert_Remove_Record_Item button, #alert_Add_Record_Item button {
+    #alert_Remove_Record_Item button {
         margin: 5px;
     }

@@ -371,8 +371,13 @@ function initEvents() {
     });
 
     $('#recordModal').on('hidden.bs.modal', function (e) {
+        stopEditRecordItem();
         stopRefereshRecordModal();
     });
+
+    $('#btn_Record_Add_Item').on('click', function () {
+        startEditRecordItem($(arguments[0].currentTarget).attr('data-target'));
+    })
 
     $('.btn-reomve-record-item-Cancel').on('click', function () {
         $('.alert-remove-record-item-mask').hide();
@@ -878,6 +883,7 @@ function refereshRecordTitle(stockId) {
     $('#recordModal .stock-info-row .stock-name').text(dataObj.name);
     $('#recordModal .stock-info-row .stock-code').text('(' + dataObj.id + ')');
     $('#recordModal .stock-info-row .current-price').text(dataObj.priceTC);
+    $('#btn_Record_Add_Item').attr("data-target", stockId);
     _intervalForRefRecordModal = window.setInterval('startRefereshRecordModal("' + stockId + '");', _intervalForRefRecordModal_Time);
 };
 
@@ -907,7 +913,7 @@ function refereshRecordSummary(stockId) {
 };
 
 function refereshRecordDetail(stockId) {
-    var tbody = $('#recordModal .deal-detail-list-tbody');
+    var tbody = $('#recordModal .record-item-list-tbody');
     tbody.empty();
     var recordList = _globalDataObj.stocks[stockId].records;
     var tmpHTML, recObj;
@@ -927,32 +933,120 @@ function refereshRecordDetail(stockId) {
         tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-record-item-edit" type="button" data-target="' + stockId + '|' + i + '">');
         tmpHTML.push('           <i class="fas fa-edit"></i>');
         tmpHTML.push('       </button>');
-        tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-record-item-remove" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-warning btn-record-item-remove" type="button" data-target="' + stockId + '|' + i + '">');
         tmpHTML.push('           <i class="fas fa-trash-alt"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-record-item-edit-cancel" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-times"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-success btn-record-item-edit-ok" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-check"></i>');
         tmpHTML.push('       </button>');
         tmpHTML.push('  </td>');
         tmpHTML.push('</tr>');
         tbody.append($(tmpHTML.join('')));
     }
 
-    $('#recordModal .deal-detail-list-tbody .btn-record-item-edit').unbind();
-    $('#recordModal .deal-detail-list-tbody .btn-record-item-remove').unbind();
-    $('#recordModal .deal-detail-list-tbody .btn-record-item-edit').click(startEditRecordItem);
-    $('#recordModal .deal-detail-list-tbody .btn-record-item-remove').click(removeRecordItem);
+    bindRecordItemEvents();
 };
 
-function startEditRecordItem(eventObj) {
-    var tmpStr = $(eventObj.currentTarget).attr("data-target");
-    var stockId = tmpStr.split('|')[0];
-    var recordIndex = parseInt(tmpStr.split('|')[1]);
-    adjustRecordItemEditAlert(stockId, recordIndex);
-    $('.alert-add-record-item-mask').show();
+function bindRecordItemEvents() {
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit').unbind();
+    $('#recordModal .record-item-list-tbody .btn-record-item-remove').unbind();
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').unbind();
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').unbind();
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit').click(startEditRecordItem);
+    $('#recordModal .record-item-list-tbody .btn-record-item-remove').click(removeRecordItem);
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').click(cancelEditRecordItem);
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').click(confirmEditRecordItem);
 };
 
-function adjustRecordItemEditAlert(stockId, recordIndex) {
-    //$('.btn-add-record-item-OK').attr('data-target', tmpStr);
+function stopEditRecordItem() {
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit').show();
+    $('#recordModal .record-item-list-tbody .btn-record-item-remove').show();
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').hide();
+    $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').hide();
+};
+
+function startEditRecordItem(arg) {
+    stopEditRecordItem();
+    var recIdx = 0;
+    var stockId = '';
+    if (typeof arg != "string") {
+        var tmpStr = $(arg.currentTarget).attr("data-target");
+        stockId = tmpStr.split('|')[0];
+        recIdx = parseInt(tmpStr.split('|')[1]);
+    } else {
+        var rows = $('.record-item-list-tbody').find('tr');
+        recIdx = rows.length;
+        stockId = arg;
+        buildNewRecordItemRow(stockId, recIdx);
+    }
+
+    var currentRow = $($('.record-item-list-tbody').find('tr')[recIdx]);
+    $(currentRow.find('.btn-record-item-edit')).hide();
+    $(currentRow.find('.btn-record-item-remove')).hide();
+    $(currentRow.find('.btn-record-item-edit-cancel')).show();
+    $(currentRow.find('.btn-record-item-edit-ok')).show();
+    $('#sel_Add_Record_Item_Type').show();
+    $('#txt_Add_Record_Item_Date').show();
+    $('#txt_Add_Record_Item_Amount').show();
+    $('#txt_Add_Record_Item_Price').show();
+    $('#txt_Add_Record_Item_Change').show();
+    $('#txt_Add_Record_Item_Tax').show();
+    $('#txt_Add_Record_Item_Fee').show();
+
+    var cells = currentRow.find('td');
+    for (var i = 0; i < cells.length - 1; i++) {
+        $(cells[i]).text("");
+    }
+    $(cells[0]).append($('#sel_Add_Record_Item_Type'));
+    $(cells[1]).append($('#txt_Add_Record_Item_Date'));
+    $(cells[2]).append($('#txt_Add_Record_Item_Amount'));
+    $(cells[3]).append($('#txt_Add_Record_Item_Price'));
+    $(cells[4]).append($('#txt_Add_Record_Item_Change'));
+    $(cells[5]).append($('#txt_Add_Record_Item_Tax'));
+    $(cells[6]).append($('#txt_Add_Record_Item_Fee'));
 
 }
+
+function cancelEditRecordItem() {
+    stopEditRecordItem();
+};
+
+function confirmEditRecordItem() {
+    stopEditRecordItem();
+};
+
+function buildNewRecordItemRow(stockId, recIdx) {
+    tmpHTML = [];
+    tmpHTML.push('<tr>')
+    tmpHTML.push('  <th scope="row">' + (recIdx + 1) + '</th>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-record-item-edit" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-edit"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-warning btn-record-item-remove" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-trash-alt"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-record-item-edit-cancel" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-times"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-success btn-record-item-edit-ok" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-check"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('  </td>');
+    tmpHTML.push('</tr>');
+    $('.record-item-list-tbody').append($(tmpHTML.join('')));
+    bindRecordItemEvents();
+};
 
 function removeRecordItem(eventObj) {
     var tmpStr = $(eventObj.currentTarget).attr("data-target");

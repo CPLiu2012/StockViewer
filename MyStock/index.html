@@ -421,25 +421,38 @@
                         </div>
                         <div class="row">
                             <div class="col">
-                                <table class="table table-sm table-striped table-bordered text-center deal-list-table">
+                                <table class="table table-sm table-striped table-bordered text-center record-item-list-table">
                                     <thead>
                                         <tr>
                                             <th>序号</th>
-                                            <th>类型</th>
+                                            <th style="width:80px;">类型</th>
                                             <th>日期</th>
                                             <th>数量</th>
                                             <th>价格</th>
                                             <th>交易费</th>
                                             <th>印花税</th>
                                             <th>其他费用</th>
-                                            <th>操作</th>
+                                            <th style="width:60px;">操作</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="deal-detail-list-tbody text-normal"></tbody>
+                                    <tbody class="record-item-list-tbody text-normal"></tbody>
                                 </table>
+                                <select class="form-control form-control-sm record-item-edit-field" id="sel_Add_Record_Item_Type">
+                                    <option value="1">买入</option>
+                                    <option value="-1">卖出</option>
+                                </select>
+                                <input class="form-control form-control-sm record-item-edit-field" type="date" value="2011-08-19T13:45:00" id="txt_Add_Record_Item_Date">
+                                <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Amount">
+                                <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Price">
+                                <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Change">
+                                <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Tax">
+                                <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Fee">
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-primary" id="btn_Record_Add_Item">添加交易记录</button>
                 </div>
             </div>
         </div>
@@ -481,62 +494,6 @@
                                 </tr>
                             </thead>
                             <tbody class="remove-record-item-tbody text-normal"></tbody>
-                        </table>
-                    </div>
-                    <div class="col-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-sm btn-success btn-reomve-record-item-OK">确定</button>
-                        <button type="button" class="btn btn-sm btn-primary btn-reomve-record-item-Cancel">取消</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="alert-add-record-item-mask">
-        <div class="alert alert-danger" id="alert_Add_Record_Item" role="alert">
-            <h6 class="alert-heading font-weight-bold">添加交易记录!</h6>
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col">
-                        <table class="table table-sm table-bordered text-center">
-                            <thead>
-                                <tr>
-                                    <th>类型</th>
-                                    <th>日期</th>
-                                    <th>数量</th>
-                                    <th>价格</th>
-                                    <th>交易费</th>
-                                    <th>印花税</th>
-                                    <th>其他费用</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <select class="form-control form-control-sm" id="sel_Add_Record_Item_Type" style="width: 70px;">
-                                            <option value="1">买入</option>
-                                            <option value="-1">卖出</option>
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="date" id="txt_Add_Record_Item_Date" value="2011-08-19T13:45:00" >
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Amount" style="width: 70px;">
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Price" style="width: 70px;">
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Change" style="width: 70px;">
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Tax" style="width: 70px;">
-                                    </td>
-                                    <td>
-                                        <input class="form-control form-control-sm" type="text" value="0" id="txt_Add_Record_Item_Fee" style="width: 70px;">
-                                    </td>
-                                </tr>
-                            </tbody>
                         </table>
                     </div>
                     <div class="col-2 d-flex align-items-end">
