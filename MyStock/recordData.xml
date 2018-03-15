@@ -13,7 +13,11 @@
       <i d="2017/8/29" t="" p="6.05" a="1000" f="b" c="5" x="0.12" e="0" />
       <i d="2017/10/18" t="" p="6.27" a="1000" f="s" c="5" x="6.4" e="0" />
     </recs>
-    <advise />
+    <advise>
+      <i d="2018/01/01" t="00:00:00" bu="2.0" bd="2.5" su="3.0" sd="3.5" lu="1.0" ld="1.5">content content content content</i>
+      <fundamentals>fundamentals fundamentals fundamentals</fundamentals>
+      <technical>technical technical technical technical</technical>
+    </advise>
   </stock>
   <stock id="sh600713" symbol="">
     <recs>

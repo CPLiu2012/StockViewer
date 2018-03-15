@@ -136,61 +136,8 @@
         color: red;
     }
 
-/*Stock Records Modal*/
-#recordModal {
-}
-
-    #recordModal .stock-info-row {
-    }
-
-    #recordModal .modal-header {
-        border-top-left-radius: 9px;
-        border-top-right-radius: 9px;
-    }
-
-    #recordModal .modal-body {
-        border-bottom-left-radius: 9px;
-        border-bottom-right-radius: 9px;
-    }
-
-    #recordModal .stock-info-row .stock-name {
-        color: #26539b;
-        font-size: 14px;
-        font-weight: bold;
-    }
-
-    #recordModal .stock-info-row .stock-code {
-    }
-
-    #recordModal .stock-info-row .current-price {
-        font-weight: bold;
-    }
-
-    #recordModal .record-item-list-table td svg {
-        cursor: pointer;
-        font-size: 16px;
-    }
-
-    #recordModal button.btn-sm {
-        padding: 0px;
-        border: none;
-    }
-
-    #recordModal .record-item-edit-field {
-        display: none;
-        height: 25px;
-        padding: 0px 5px;
-    }
-
-    #recordModal .btn-record-item-edit-cancel{
-        display:none;
-    }
-
-    #recordModal .btn-record-item-edit-ok{
-        display:none;
-    }
-
-.alert-remove-record-item-mask {
+/*Alert For Remove Stock Deal Record*/
+.alert-remove-record-item-mask, .alert-remove-advise-item-mask {
     position: absolute;
     top: 0px;
     width: 100%;
@@ -200,23 +147,117 @@
     background-color: rgba(0,0,0,0.4);
 }
 
-#alert_Remove_Record_Item {
+#alert_Remove_Record_Item, #alert_Remove_Advise_Item {
     position: absolute;
     margin: 10px;
     top: 0px;
     width: calc(100% - 20px);
 }
 
-    #alert_Remove_Record_Item table {
+    #alert_Remove_Record_Item table, #alert_Remove_Advise_Item table {
         background-color: rgba(255,255,255,0.7);
         border: none;
         border-radius: 5px;
     }
 
-        #alert_Remove_Record_Item table th {
+        #alert_Remove_Record_Item table th, #alert_Remove_Advise_Item table th {
             font-size: 14px;
         }
 
-    #alert_Remove_Record_Item button {
+    #alert_Remove_Record_Item button, #alert_Remove_Advise_Item button {
         margin: 5px;
     }
+
+/*Stock Records Modal & Advise Modal*/
+.stock-info-row {
+}
+
+    .stock-info-row .stock-name {
+        color: #26539b;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .stock-info-row .stock-code {
+    }
+
+    .stock-info-row .current-price {
+        font-weight: bold;
+    }
+
+#recordModal .modal-header, #adviseModal .modal-header {
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+}
+
+#recordModal .modal-body, #adviseModal .modal-body {
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+}
+
+#recordModal .record-item-list-table td svg, #adviseModal .advise-item-list-table td svg {
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#recordModal button.btn-sm, #adviseModal button.btn-sm {
+    padding: 0px;
+    border: none;
+}
+
+#recordModal .btn-record-item-edit-cancel, #adviseModal .btn-advise-item-edit-cancel {
+    display: none;
+}
+
+#recordModal .btn-record-item-edit-ok, #adviseModal .btn-advise-item-edit-ok {
+    display: none;
+}
+
+#recordModal #btn_Record_Add_Item, #adviseModal #btn_Advise_Add_Item {
+    font-size: 7px;
+    padding: 5px;
+}
+
+#recordModal .record-item-edit-field, #adviseModal .advise-item-edit-field {
+    display: none;
+    height: 25px;
+    padding: 0px 5px;
+}
+
+#recordModal input.record-item-edit-field:not([type=date]), #adviseModal input.advise-item-edit-field:not([type=date]) {
+    text-align: right;
+}
+
+#adviseModal .advise-item-edit-field {
+    font-size: 12px;
+}
+
+#adviseModal div.form-check.form-check-inline {
+    display: none;
+    width: 130px;
+    margin-right: 0px;
+}
+
+    #adviseModal div.form-check.form-check-inline .advise-item-edit-field {
+        display: inline;
+        max-width: 50px;
+        -webkit-appearance: none;
+    }
+
+    #adviseModal div.form-check.form-check-inline input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+
+    #adviseModal div.form-check.form-check-inline input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+#adviseModal input.advise-item-edit-field[type=date] {
+    width: 120px;
+}
+
+#adviseModal textarea {
+    margin-bottom: 5px;
+    font-size: 14px;
+    line-height: initial;
+}

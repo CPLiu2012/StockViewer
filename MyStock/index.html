@@ -420,11 +420,11 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col">
+                            <div class="col record-item-list-container">
                                 <table class="table table-sm table-striped table-bordered text-center record-item-list-table">
                                     <thead>
                                         <tr>
-                                            <th>序号</th>
+                                            <th style="width:50px;">序号</th>
                                             <th style="width:80px;">类型</th>
                                             <th>日期</th>
                                             <th>数量</th>
@@ -432,7 +432,7 @@
                                             <th>交易费</th>
                                             <th>印花税</th>
                                             <th>其他费用</th>
-                                            <th style="width:60px;">操作</th>
+                                            <th style="width: 60px;">操作</th>
                                         </tr>
                                     </thead>
                                     <tbody class="record-item-list-tbody text-normal"></tbody>
@@ -457,9 +457,9 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="adviseModal" tabindex="-1" role="dialog" aria-labelledby="adviseModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
+    <div class="modal fade bd-example-modal-lg" id="adviseModal" tabindex="-1" role="dialog" aria-labelledby="adviseModalLabel">
+        <div class="modal-dialog" role="document" style="max-width:850px;">
+            <div class="modal-content" style="border: 2px solid rgba(0, 0, 0, 0.5);border-radius: 10px;">
                 <div class="modal-header">
                     <h6 class="modal-title" id="adviseModalLabel">操作指引</h6>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -467,10 +467,94 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row stock-info-row">
+                            <div class="col">
+                                <span class="stock-name"></span>
+                                <span class="stock-code" style="padding:0px 10px;"></span>
+                                <span>当前价格: </span>
+                                <span class="current-price" style="padding:0px 10px;"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>买入均价</th>
+                                            <th>持有量(股)</th>
+                                            <th>当前市值</th>
+                                            <th>每股盈亏</th>
+                                            <th>持仓盈亏</th>
+                                            <th>总盈亏</th>
+                                            <th>盈亏率</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="position-detail-row text-center text-normal">
+                                            <td class="cell-cost-price"></td>
+                                            <td class="cell-amount"></td>
+                                            <td class="cell-current-total-value"></td>
+                                            <td class="cell-profit-loss-unit"></td>
+                                            <td class="cell-profit-loss-position font-weight-bold"></td>
+                                            <td class="cell-profit-loss-total font-weight-bold"></td>
+                                            <td class="cell-profit-loss-rate font-weight-bold"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h6 class="font-weight-bold" style="font-size:14px;">基本面</h6>
+                                <textarea class="form-control" id="txt_Advise_Fundamentals" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h6 class="font-weight-bold" style="font-size:14px;">技术面</h6>
+                                <textarea class="form-control" id="txt_Advise_Technical" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col advise-item-list-container">
+                                <table class="table table-sm table-striped table-bordered text-center advise-item-list-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:50px;">序号</th>
+                                            <th>日期</th>
+                                            <th>买入参考区</th>
+                                            <th>卖出参考区</th>
+                                            <th>止损参考区</th>
+                                            <th>指引说明</th>
+                                            <th style="width: 60px;">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="advise-item-list-tbody text-normal"></tbody>
+                                </table>
+                                <input class="form-control form-control-sm advise-item-edit-field" type="date" value="2011-08-19" id="txt_Add_Advise_Item_Date">
+                                <div id="container_Add_Advise_Item_Buy" class="form-check form-check-inline">
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Buy_Down">
+                                    <i class="fas fa-minus"></i>
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Buy_Up">
+                                </div>
+                                <div id="container_Add_Advise_Item_Sell" class="form-check form-check-inline">
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Sell_Down">
+                                    <i class="fas fa-minus"></i>
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Sell_Up">
+                                </div>
+                                <div id="container_Add_Advise_Item_Loss" class="form-check form-check-inline">
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Loss_Down">
+                                    <i class="fas fa-minus"></i>
+                                    <input class="form-control form-control-sm advise-item-edit-field" type="number" value="0" id="txt_Add_Advise_Item_Loss_Up">
+                                </div>
+                                <input class="form-control form-control-sm advise-item-edit-field" type="text" id="txt_Add_Advise_Item_Content">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-primary">保存</button>
-                    <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="btn_Advise_Add_Item">添加指引记录</button>
                 </div>
             </div>
         </div>
@@ -499,6 +583,33 @@
                     <div class="col-2 d-flex align-items-end">
                         <button type="button" class="btn btn-sm btn-success btn-reomve-record-item-OK">确定</button>
                         <button type="button" class="btn btn-sm btn-primary btn-reomve-record-item-Cancel">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="alert-remove-advise-item-mask">
+        <div class="alert alert-danger" id="alert_Remove_Advise_Item" role="alert">
+            <h6 class="alert-heading font-weight-bold">确定删除此条指引记录吗, 删除后不可恢复!</h6>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col">
+                        <table class="table table-sm table-bordered text-center">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>买入参考区</th>
+                                    <th>止盈参考区</th>
+                                    <th>止损参考区</th>
+                                    <th>指引说明</th>
+                                </tr>
+                            </thead>
+                            <tbody class="remove-advise-item-tbody text-normal"></tbody>
+                        </table>
+                    </div>
+                    <div class="col-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-success btn-reomve-advise-item-OK">确定</button>
+                        <button type="button" class="btn btn-sm btn-primary btn-reomve-advise-item-Cancel">取消</button>
                     </div>
                 </div>
             </div>

@@ -3,11 +3,9 @@
     stocks: {},
     stockIds: "",
 };
-
 var _globalFilterDataList = [];
-
 var _historyDoc = null;
-
+/*URL For Get Data*/
 var _dataURL = {
     //当前信息, 返回v_sz000858=""
     detail_now: "http://qt.gtimg.cn/q=",
@@ -32,7 +30,6 @@ var _dataURL = {
     //实时成交量明细,返回v_detail_data_sh600519, 参数p为页码
     position_analysis: "http://stock.gtimg.cn/data/index.php?appn=detail&action=data&c=sh600519&p=2"
 };
-
 var _dataURLSina = {
     //关键字查询, 返回suggestvalue=""
     stock_search: "http://suggest3.sinajs.cn/suggest/type=11,12&key=",
@@ -51,16 +48,66 @@ var _dataURLSina = {
     //分价表
     price_points_table: 'http://market.finance.sina.com.cn/pricehis.php?symbol=sh600900&startdate=2011-08-17&enddate=2011-08-19'
 };
-
+/*For Stock Rrecords Modal*/
+var _recordColFieldValuMapping = [
+    { id: '#sel_Add_Record_Item_Type', key: 'flag', convert: function (value) { return value == "b" ? '1' : '-1' }, format: function (value) { return value == "1" ? 'b' : 's' } },
+    { id: '#txt_Add_Record_Item_Date', key: 'date', convert: formatDateString, format: function (value) { return value.replace(/-/g, '/') } },
+    { id: '#txt_Add_Record_Item_Amount', key: 'amt', convert: function (value) { return value }, format: parseInt },
+    { id: '#txt_Add_Record_Item_Price', key: 'price', convert: numberToFixed, format: parseFloat },
+    { id: '#txt_Add_Record_Item_Change', key: 'charge', convert: numberToFixed, format: parseFloat },
+    { id: '#txt_Add_Record_Item_Tax', key: 'tax', convert: numberToFixed, format: parseFloat },
+    { id: '#txt_Add_Record_Item_Fee', key: 'fee', convert: numberToFixed, format: parseFloat }
+];
+var _editingRecordItem = { obj: null, rowIdx: -1, stockId: '' };
+/*For Stock Advises Modal*/
+var _adviseColFieldValuMapping = [
+    { id: '#txt_Add_Advise_Item_Date', key: 'date', convert: formatDateString, format: function (value) { return value.replace(/-/g, '/') }, items: null },
+    {
+        id: '#container_Add_Advise_Item_Buy',
+        key: 'buyScope',
+        convert: null,
+        format: formatAdviseScope,
+        items: [
+            { id: '#txt_Add_Advise_Item_Buy_Down', key: 'buyDown', convert: numberToFixed, format: parseFloat },
+            { id: '#txt_Add_Advise_Item_Buy_Up', key: 'buyUp', convert: numberToFixed, format: parseFloat }
+        ]
+    },
+    {
+        id: '#container_Add_Advise_Item_Sell',
+        key: 'stopProfitScope',
+        convert: null,
+        format: formatAdviseScope,
+        items: [
+            { id: '#txt_Add_Advise_Item_Sell_Down', key: 'stopProfitDown', convert: numberToFixed, format: parseFloat },
+            { id: '#txt_Add_Advise_Item_Sell_Up', key: 'stopProfitUp', convert: numberToFixed, format: parseFloat }
+        ]
+    },
+    {
+        id: '#container_Add_Advise_Item_Loss',
+        key: 'stopLossScope',
+        convert: null,
+        format: formatAdviseScope,
+        items: [
+            { id: '#txt_Add_Advise_Item_Loss_Down', key: 'stopLossDown', convert: numberToFixed, format: parseFloat },
+            { id: '#txt_Add_Advise_Item_Loss_Up', key: 'stopLossUp', convert: numberToFixed, format: parseFloat }
+        ]
+    },
+    { id: '#txt_Add_Advise_Item_Content', key: 'content', convert: null, format: null, items: null }
+];
+var _editingAdviseItem = { obj: null, rowIdx: -1, stockId: '' };
+/*For Interval Funcitons*/
 var _intervalForRefMainTB_Time = 1000;
 var _intervalForRefStockInfo_Time = 1000;
 var _intervalForRefTimeSharingPlans_Time = 5000;
 var _intervalForRefRecordModal_Time = 2000;
+var _intervalForRefAdviseModal_Time = 2000;
 var _intervalForRefMainTB = null;
 var _intervalForRefStockInfo = null;
 var _intervalForRefTimeSharingPlans = null;
 var _intervalForRefRecordModal = null;
+var _intervalForRefAdviseModal = null;
 
+/*Global Functions*/
 function _loadStockList() {
     _historyDoc = $(LoadXMLFile('recordData.xml'));
     var stockEls = _historyDoc.find('stock');
@@ -110,7 +157,10 @@ function onClickRecordButton(eventObj) {
 };
 
 function onClickAdviseButton(eventObj) {
-
+    var stockId = $(eventObj.currentTarget).attr('data-stockid');
+    refereshAdviseTitle(stockId);
+    refereshAdviseDetail(stockId);
+    refereshAdviseSummary(stockId);
 };
 
 function onDragButtonMouseDown(eventObj) {
@@ -371,13 +421,18 @@ function initEvents() {
     });
 
     $('#recordModal').on('hidden.bs.modal', function (e) {
-        stopEditRecordItem();
+        $('.record-item-list-tbody').empty();
         stopRefereshRecordModal();
+    });
+
+    $('#adviseModal').on('hidden.bs.modal', function (e) {
+        $('.advise-item-list-tbody').empty();
+        stopRefereshAdviseModal();
     });
 
     $('#btn_Record_Add_Item').on('click', function () {
         startEditRecordItem($(arguments[0].currentTarget).attr('data-target'));
-    })
+    });
 
     $('.btn-reomve-record-item-Cancel').on('click', function () {
         $('.alert-remove-record-item-mask').hide();
@@ -397,6 +452,38 @@ function initEvents() {
         refereshRecordTitle(stockId);
         refereshRecordDetail(stockId);
         refereshRecordSummary(stockId);
+    });
+
+    $('#btn_Advise_Add_Item').on('click', function () {
+        startEditAdviseItem($(arguments[0].currentTarget).attr('data-target'));
+    });
+
+    $('.btn-reomve-advise-item-Cancel').on('click', function () {
+        $('.alert-remove-advise-item-mask').hide();
+    });
+
+    $('.btn-reomve-advise-item-OK').on('click', function () {
+        $('.alert-remove-advise-item-mask').hide();
+        var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+        var stockId = tmpStr.split('|')[0];
+        var adviseIndex = parseInt(tmpStr.split('|')[1]);
+        var adviseList = _globalDataObj.stocks[stockId].advise;
+        var tmpHTML, advObj;
+        if (adviseList.length > adviseIndex && adviseIndex >= 0) {
+            adviseList.splice(adviseIndex, 1);
+        }
+
+        refereshAdviseDetail(stockId);
+    });
+
+    $('#txt_Advise_Fundamentals').on('change', function () {
+        var stockId = $('#txt_Advise_Fundamentals').attr('data-target');
+        _globalDataObj.stocks[stockId].fundamentals = $('#txt_Advise_Fundamentals').val();
+    });
+
+    $('#txt_Advise_Technical').on('change', function () {
+        var stockId = $('#txt_Advise_Technical').attr('data-target');
+        _globalDataObj.stocks[stockId].technical = $('#txt_Advise_Technical').val();
     });
 };
 
@@ -566,6 +653,7 @@ function startRefereshDataTable() {
             tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
             $(currRowId).css('color', tmpColor);
             $(currRowId + ' .stock_info_cell_symbol').text(_globalFilterDataList[i].symbol);
+            //$(currRowId + ' .stock_info_cell_alert').text(_globalFilterDataList[i].symbol);
             $(currRowId + ' .stock_info_cell_priceYC').text(formatValue(currMarket.priceYC, true));
             $(currRowId + ' .stock_info_cell_priceTO').text(formatValue(currMarket.priceTO, true));
             $(currRowId + ' .stock_info_cell_priceTC').text(formatValue(currMarket.priceTC, true));
@@ -577,7 +665,7 @@ function startRefereshDataTable() {
             $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
             $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalCost, true));
             $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
-            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(currData.totalPL, true)).css('color', currData.totalPL == 0 ? (currData.totalPL > 0 ? "red" : "green") : "black");
+            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(currData.totalPL, true)).css('color', currData.totalPL != 0 ? (currData.totalPL > 0 ? "red" : "green") : "black");
             tmpVal = _globalDataObj.stocks[stockId].advise;
             tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
             $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
@@ -777,33 +865,9 @@ StockLoader.record = function (stockId) {
     }
 };
 
-StockLoader.formatAdviseScope = function (down, up, isProfit) {
-    down = isNaN(down) ? '' : down;
-    up = isNaN(up) ? '' : up;
-    var retVal = '';
-    if (isProfit) {
-        if (down != '') {
-            if (up != '') {
-                retVal = parseFloat(down).toFixed(2) + '--' + parseFloat(up).toFixed(2);
-            } else {
-                retVal = '>' + parseFloat(down).toFixed(2);
-            }
-        }
-    } else {
-        if (up != '') {
-            if (down != '') {
-                retVal = parseFloat(down).toFixed(2) + '--' + parseFloat(up).toFixed(2);
-            } else {
-                retVal = '<' + parseFloat(up).toFixed(2);
-            }
-        }
-    }
-
-    return retVal;
-};
-
 StockLoader.advise = function (stockId) {
-    var advEls = _historyDoc.find('stock[id="' + stockId + '"] advise i');
+    var advRoot = _historyDoc.find('stock[id="' + stockId + '"] advise');
+    var advEls = advRoot.find('i');
     var curradv;
     for (var i = 0; i < advEls.length; i++) {
         curradv = $(advEls[i]);
@@ -822,10 +886,12 @@ StockLoader.advise = function (stockId) {
             content: curradv.text()
         };
 
-        newAdviseObj.buyScope = StockLoader.formatAdviseScope(newAdviseObj.buyDown, newAdviseObj.buyUp, false);
-        newAdviseObj.stopProfitScope = StockLoader.formatAdviseScope(newAdviseObj.stopProfitDown, newAdviseObj.stopProfitUp, true);
-        newAdviseObj.stopLossScope = StockLoader.formatAdviseScope(newAdviseObj.stopLossDown, newAdviseObj.stopLossUp, false);
+        newAdviseObj.buyScope = formatAdviseScope(newAdviseObj.buyDown, newAdviseObj.buyUp, false);
+        newAdviseObj.stopProfitScope = formatAdviseScope(newAdviseObj.stopProfitDown, newAdviseObj.stopProfitUp, true);
+        newAdviseObj.stopLossScope = formatAdviseScope(newAdviseObj.stopLossDown, newAdviseObj.stopLossUp, false);
         _globalDataObj.stocks[stockId].advise.push(newAdviseObj);
+        _globalDataObj.stocks[stockId].fundamentals = $(advRoot.find('fundamentals')[0]).text();
+        _globalDataObj.stocks[stockId].technical = $(advRoot.find('technical')[0]).text();
     }
 };
 
@@ -872,6 +938,7 @@ function startRefereshRecordModal(stockId) {
     var dataObj = _globalDataObj.stocks[stockId].market;
     $('#recordModal .stock-info-row .current-price').text(dataObj.priceTC);
     $('#recordModal .stock-info-row .current-price').css('color', (dataObj.priceTC == dataObj.priceYC ? "black" : dataObj.priceTC > dataObj.priceYC ? "red" : "green"));
+    refereshRecordSummary(stockId);
 };
 
 function stopRefereshRecordModal() {
@@ -888,28 +955,7 @@ function refereshRecordTitle(stockId) {
 };
 
 function refereshRecordSummary(stockId) {
-    var stockObj = _globalDataObj.stocks[stockId].market;
-    var summaryObj = StockLoader.calcSummaryData(stockId);
-    var tmpColor;
-    if (summaryObj.amount > 0) {
-        var tmpPLUnit = stockObj.priceTC - summaryObj.price;
-        $('#recordModal .position-detail-row .cell-cost-price').text(summaryObj.price.toFixed(2));
-        $('#recordModal .position-detail-row .cell-amount').text(summaryObj.amount);
-        $('#recordModal .position-detail-row .cell-current-total-value').text(stockObj.priceTC * summaryObj.amount);
-        $('#recordModal .position-detail-row .cell-profit-loss-unit').text(tmpPLUnit.toFixed(2));
-        var tmpColor = stockObj.priceTC == stockObj.priceYC ? "black" : stockObj.priceTC > stockObj.priceYC ? "red" : "green"
-        $('#recordModal .position-detail-row .cell-profit-loss-position').text((tmpPLUnit * summaryObj.amount).toFixed(2)).css('color', tmpColor);
-        $('#recordModal .position-detail-row .cell-profit-loss-total').text('-').css('color', tmpColor);
-        $('#recordModal .position-detail-row .cell-profit-loss-rate').text((tmpPLUnit / summaryObj.price * 100).toFixed(2) + '%').css('color', tmpColor);
-    } else {
-        $('#recordModal .position-detail-row .cell-cost-price').text('-');
-        $('#recordModal .position-detail-row .cell-amount').text('-');
-        $('#recordModal .position-detail-row .cell-current-total-value').text('-');
-        $('#recordModal .position-detail-row .cell-profit-loss-unit').text('-');
-        $('#recordModal .position-detail-row .cell-profit-loss-position').text('-');
-        $('#recordModal .position-detail-row .cell-profit-loss-total').text(summaryObj.PL.toFixed(2)).css('color', summaryObj.PL.value < 0 ? "green" : "red");
-        $('#recordModal .position-detail-row .cell-profit-loss-rate').text('-');
-    }
+    UpdatePositionDetailRow(stockId, '#recordModal');
 };
 
 function refereshRecordDetail(stockId) {
@@ -961,61 +1007,117 @@ function bindRecordItemEvents() {
     $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').click(confirmEditRecordItem);
 };
 
+function adjustRecordOptBtnStatus(isEdit, rowIndex) {
+    if (isEdit) {
+        $('.record-item-list-tbody tr:eq(' + rowIndex + ') td .btn-record-item-edit').hide();
+        $('.record-item-list-tbody tr:eq(' + rowIndex + ') td .btn-record-item-remove').hide();
+        $('.record-item-list-tbody tr:eq(' + rowIndex + ') td .btn-record-item-edit-cancel').show();
+        $('.record-item-list-tbody tr:eq(' + rowIndex + ') td .btn-record-item-edit-ok').show();
+    } else {
+        $('#recordModal .record-item-list-tbody .btn-record-item-edit').show();
+        $('#recordModal .record-item-list-tbody .btn-record-item-remove').show();
+        $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').hide();
+        $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').hide();
+    }
+}
+
 function stopEditRecordItem() {
-    $('#recordModal .record-item-list-tbody .btn-record-item-edit').show();
-    $('#recordModal .record-item-list-tbody .btn-record-item-remove').show();
-    $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').hide();
-    $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').hide();
+    adjustRecordOptBtnStatus(false);
+    var tmpMapItem, tmpVal;
+    var container = $('.record-item-list-container');
+    for (var i = 0; i < _recordColFieldValuMapping.length; i++) {
+        tmpMapItem = _recordColFieldValuMapping[i];
+        container.append($(tmpMapItem.id).hide());
+    }
+
+    if (_editingRecordItem.obj != null) {
+        if ((_editingRecordItem.obj.amt == 0 || _editingRecordItem.obj.price == 0) && _editingRecordItem.stockId != '') {
+            if (_globalDataObj.stocks[_editingRecordItem.stockId].records.length < $('.record-item-list-tbody tr').length) {
+                $('.record-item-list-tbody tr:last').remove();
+                return;
+            }
+        }
+
+        var cells = $('.record-item-list-tbody tr:eq(' + _editingRecordItem.rowIdx + ') td');
+        for (var i = 0; i < _recordColFieldValuMapping.length; i++) {
+            tmpMapItem = _recordColFieldValuMapping[i];
+            tmpVal = _editingRecordItem.obj[tmpMapItem.key];
+            if (i == 0) {
+                $(cells[i]).text(tmpVal == 1 ? "买入" : "卖出");
+            } else {
+                $(cells[i]).text(tmpMapItem.convert(tmpVal));
+            }
+        }
+
+        _editingRecordItem = { obj: null, rowIdx: -1, stockId: '' };
+    }
 };
 
 function startEditRecordItem(arg) {
     stopEditRecordItem();
     var recIdx = 0;
     var stockId = '';
+    var currRec = null;
     if (typeof arg != "string") {
         var tmpStr = $(arg.currentTarget).attr("data-target");
         stockId = tmpStr.split('|')[0];
         recIdx = parseInt(tmpStr.split('|')[1]);
+        currRec = _globalDataObj.stocks[stockId].records[recIdx];
     } else {
         var rows = $('.record-item-list-tbody').find('tr');
         recIdx = rows.length;
         stockId = arg;
         buildNewRecordItemRow(stockId, recIdx);
+        currRec = { date: (new Date()).toLocaleDateString(), time: "00:00:00", price: 0, amt: 0, flag: 'b', charge: 0, tax: 0, fee: 0 };
     }
 
-    var currentRow = $($('.record-item-list-tbody').find('tr')[recIdx]);
-    $(currentRow.find('.btn-record-item-edit')).hide();
-    $(currentRow.find('.btn-record-item-remove')).hide();
-    $(currentRow.find('.btn-record-item-edit-cancel')).show();
-    $(currentRow.find('.btn-record-item-edit-ok')).show();
-    $('#sel_Add_Record_Item_Type').show();
-    $('#txt_Add_Record_Item_Date').show();
-    $('#txt_Add_Record_Item_Amount').show();
-    $('#txt_Add_Record_Item_Price').show();
-    $('#txt_Add_Record_Item_Change').show();
-    $('#txt_Add_Record_Item_Tax').show();
-    $('#txt_Add_Record_Item_Fee').show();
-
-    var cells = currentRow.find('td');
+    _editingRecordItem = { obj: currRec, rowIdx: recIdx, stockId: stockId };
+    adjustRecordOptBtnStatus(true, recIdx);
+    var cells = $('.record-item-list-tbody tr:eq(' + recIdx + ') td');
+    var tmpMapItem, tmpVal;
     for (var i = 0; i < cells.length - 1; i++) {
-        $(cells[i]).text("");
+        tmpMapItem = _recordColFieldValuMapping[i];
+        $(cells[i]).text("").append($(tmpMapItem.id).show());
+        $(tmpMapItem.id).val(tmpMapItem.convert(currRec[tmpMapItem.key]));
     }
-    $(cells[0]).append($('#sel_Add_Record_Item_Type'));
-    $(cells[1]).append($('#txt_Add_Record_Item_Date'));
-    $(cells[2]).append($('#txt_Add_Record_Item_Amount'));
-    $(cells[3]).append($('#txt_Add_Record_Item_Price'));
-    $(cells[4]).append($('#txt_Add_Record_Item_Change'));
-    $(cells[5]).append($('#txt_Add_Record_Item_Tax'));
-    $(cells[6]).append($('#txt_Add_Record_Item_Fee'));
-
 }
 
 function cancelEditRecordItem() {
+    var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var recIdx = parseInt(tmpStr.split('|')[1]);
+    var recList = _globalDataObj.stocks[stockId].records;
     stopEditRecordItem();
+    if (typeof recList[recIdx] != 'undefined' && recList[recIdx] != null) {
+        _editingRecordItem = { obj: recList[recIdx], rowIdx: recIdx, stockId: stockId };
+    } else if ($('.record-item-list-tbody tr:eq(' + recIdx + ')').length > 0) {
+        _editingRecordItem = { obj: null, rowIdx: -1, stockId: '' };
+        $('.record-item-list-tbody tr:eq(' + recIdx + ')').remove();
+    }
 };
 
 function confirmEditRecordItem() {
+    var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var recIdx = parseInt(tmpStr.split('|')[1]);
+    var recList = _globalDataObj.stocks[stockId].records;
+    var currRec = null;
+    if (recIdx >= recList.length) {
+        currRec = { date: (new Date()).toLocaleDateString(), time: "00:00:00", price: 0, amt: 0, flag: 'b', charge: 0, tax: 0, fee: 0 };
+        recList.push(currRec);
+    } else {
+        currRec = recList[recIdx];
+    }
+
+    var tmpMapItem;
+    for (var i = 0; i < _recordColFieldValuMapping.length; i++) {
+        tmpMapItem = _recordColFieldValuMapping[i];
+        currRec[tmpMapItem.key] = tmpMapItem.format($(tmpMapItem.id).val());
+    }
+
+    _editingRecordItem = { obj: currRec, rowIdx: recIdx, stockId: stockId };
     stopEditRecordItem();
+    refereshRecordSummary(stockId);
 };
 
 function buildNewRecordItemRow(stockId, recIdx) {
@@ -1075,7 +1177,281 @@ function removeRecordItem(eventObj) {
     $('.alert-remove-record-item-mask').show();
 };
 
-/*Global Function*/
+/*Advise Modal*/
+function startRefereshAdviseModal(stockId) {
+    var dataObj = _globalDataObj.stocks[stockId].market;
+    $('#adviseModal .stock-info-row .current-price').text(dataObj.priceTC);
+    $('#adviseModal .stock-info-row .current-price').css('color', (dataObj.priceTC == dataObj.priceYC ? "black" : dataObj.priceTC > dataObj.priceYC ? "red" : "green"));
+    refereshAdviseSummary(stockId);
+};
+
+function stopRefereshAdviseModal() {
+    window.clearInterval(_intervalForRefAdviseModal);
+};
+
+function refereshAdviseTitle(stockId) {
+    var dataObj = _globalDataObj.stocks[stockId].market;
+    $('#adviseModal .stock-info-row .stock-name').text(dataObj.name);
+    $('#adviseModal .stock-info-row .stock-code').text('(' + dataObj.id + ')');
+    $('#adviseModal .stock-info-row .current-price').text(dataObj.priceTC);
+    $('#btn_Advise_Add_Item').attr("data-target", stockId);
+    $('#txt_Advise_Fundamentals').attr("data-target", stockId);
+    $('#txt_Advise_Technical').attr("data-target", stockId);
+    _intervalForRefAdviseModal = window.setInterval('startRefereshAdviseModal("' + stockId + '");', _intervalForRefAdviseModal_Time);
+};
+
+function refereshAdviseSummary(stockId) {
+    UpdatePositionDetailRow(stockId, '#adviseModal');
+};
+
+function refereshAdviseDetail(stockId) {
+    var tbody = $('#adviseModal .advise-item-list-tbody');
+    tbody.empty();
+    var adviseList = _globalDataObj.stocks[stockId].advise;
+    var tmpHTML, advObj;
+    for (var i = 0; i < adviseList.length; i++) {
+        tmpHTML = [];
+        advObj = adviseList[i];
+        tmpHTML.push('<tr>')
+        tmpHTML.push('  <th scope="row">' + (i + 1) + '</th>');
+        tmpHTML.push('  <td>' + formatDateString(advObj.date) + '</td>');
+        tmpHTML.push('  <td class="text-right">' + advObj.buyScope + '</td>');
+        tmpHTML.push('  <td class="text-right">' + advObj.stopProfitScope + '</td>');
+        tmpHTML.push('  <td class="text-right">' + advObj.stopLossScope + '</td>');
+        tmpHTML.push('  <td class="text-right">' + advObj.content + '</td>');
+        tmpHTML.push('  <td>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-advise-item-edit" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-edit"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-warning btn-advise-item-remove" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-trash-alt"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-advise-item-edit-cancel" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-times"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('       <button class="btn btn-sm btn-outline-success btn-advise-item-edit-ok" type="button" data-target="' + stockId + '|' + i + '">');
+        tmpHTML.push('           <i class="fas fa-check"></i>');
+        tmpHTML.push('       </button>');
+        tmpHTML.push('  </td>');
+        tmpHTML.push('</tr>');
+        tbody.append($(tmpHTML.join('')));
+    }
+
+    bindAdviseItemEvents();
+};
+
+function bindAdviseItemEvents() {
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit').unbind();
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-remove').unbind();
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').unbind();
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').unbind();
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit').click(startEditAdviseItem);
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-remove').click(removeAdviseItem);
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').click(cancelEditAdviseItem);
+    $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').click(confirmEditAdviseItem);
+};
+
+function adjustAdviseOptBtnStatus(isEdit, rowIndex) {
+    if (isEdit) {
+        $('#adviseModal .advise-item-list-tbody tr:eq(' + rowIndex + ') td .btn-advise-item-edit').hide();
+        $('#adviseModal .advise-item-list-tbody tr:eq(' + rowIndex + ') td .btn-advise-item-remove').hide();
+        $('#adviseModal .advise-item-list-tbody tr:eq(' + rowIndex + ') td .btn-advise-item-edit-cancel').show();
+        $('#adviseModal .advise-item-list-tbody tr:eq(' + rowIndex + ') td .btn-advise-item-edit-ok').show();
+    } else {
+        $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit').show();
+        $('#adviseModal .advise-item-list-tbody .btn-advise-item-remove').show();
+        $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').hide();
+        $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').hide();
+    }
+}
+
+function stopEditAdviseItem() {
+    adjustAdviseOptBtnStatus(false);
+    var tmpMapItem, tmpVal;
+    var container = $('.advise-item-list-container');
+    for (var i = 0; i < _adviseColFieldValuMapping.length; i++) {
+        tmpMapItem = _adviseColFieldValuMapping[i];
+        container.append($(tmpMapItem.id).hide());
+    }
+
+    if (_editingAdviseItem.obj != null) {
+        var tmpObj = _editingAdviseItem.obj;
+        if (typeof tmpObj.isnew != 'undefined' && tmpObj.isnew === true) {
+            if (_globalDataObj.stocks[_editingAdviseItem.stockId].advise.length < $('.advise-item-list-tbody tr').length) {
+                $('.advise-item-list-tbody tr:last').remove();
+                return;
+            }
+        }
+
+        var cells = $('.advise-item-list-tbody tr:eq(' + _editingAdviseItem.rowIdx + ') td');
+        for (var i = 0; i < _adviseColFieldValuMapping.length; i++) {
+            tmpMapItem = _adviseColFieldValuMapping[i];
+            tmpVal = _editingAdviseItem.obj[tmpMapItem.key];
+            $(cells[i]).text(tmpMapItem.convert == null ? tmpVal : tmpMapItem.convert(tmpVal));
+        }
+
+        _editingAdviseItem = { obj: null, rowIdx: -1, stockId: '' };
+    }
+};
+
+function startEditAdviseItem(arg) {
+    stopEditAdviseItem();
+    var advIdx = 0;
+    var stockId = '';
+    var currAdv = null;
+    if (typeof arg != "string") {
+        var tmpStr = $(arg.currentTarget).attr("data-target");
+        stockId = tmpStr.split('|')[0];
+        advIdx = parseInt(tmpStr.split('|')[1]);
+        currAdv = _globalDataObj.stocks[stockId].advise[advIdx];
+    } else {
+        var rows = $('.advise-item-list-tbody').find('tr');
+        advIdx = rows.length;
+        stockId = arg;
+        buildNewAdviseItemRow(stockId, advIdx);
+        currAdv = {
+            date: (new Date()).toLocaleDateString(),
+            time: "00:00:00",
+            buyDown: 0,
+            buyUp: 0,
+            stopProfitDown: 0,
+            stopProfitUp: 0,
+            stopLossDown: 0,
+            stopLossUp: 0,
+            buyScope: '',
+            stopProfitScope: '',
+            stopLossScope: '',
+            content: ''
+        };
+    }
+
+    _editingAdviseItem = { obj: currAdv, rowIdx: advIdx, stockId: stockId };
+    adjustAdviseOptBtnStatus(true, advIdx);
+    var cells = $('.advise-item-list-tbody tr:eq(' + advIdx + ') td');
+    var tmpMapItem, tmpVal;
+    for (var i = 0; i < cells.length - 1; i++) {
+        tmpMapItem = _adviseColFieldValuMapping[i];
+        $(cells[i]).text("").append($(tmpMapItem.id).show());
+        if (tmpMapItem.items != null) {
+            for (var j = 0; j < tmpMapItem.items.length; j++) {
+                $(tmpMapItem.items[j].id).val(tmpMapItem.items[j].convert(currAdv[tmpMapItem.items[j].key]));
+            }
+        } else {
+            $(tmpMapItem.id).val(tmpMapItem.convert == null ? currAdv[tmpMapItem.key] : tmpMapItem.convert(currAdv[tmpMapItem.key]));
+        }
+    }
+}
+
+function cancelEditAdviseItem() {
+    var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var advIdx = parseInt(tmpStr.split('|')[1]);
+    var advList = _globalDataObj.stocks[stockId].advise;
+    stopEditAdviseItem();
+    if (typeof advList[recIdx] != 'undefined' && advList[recIdx] != null) {
+        _editingAdviseItem = { obj: advList[advIdx], rowIdx: advIdx, stockId: stockId };
+    } else if ($('.advise-item-list-tbody tr:eq(' + advIdx + ')').length > 0) {
+        _editingAdviseItem = { obj: null, advIdx: -1, stockId: '' };
+        $('.advise-item-list-tbody tr:eq(' + advIdx + ')').remove();
+    }
+};
+
+function confirmEditAdviseItem() {
+    var tmpStr = $(arguments[0].currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var advIdx = parseInt(tmpStr.split('|')[1]);
+    var advList = _globalDataObj.stocks[stockId].advise;
+    var currAdv = null;
+    if (advIdx >= advList.length) {
+        currAdv = {
+            date: (new Date()).toLocaleDateString(),
+            time: "00:00:00",
+            buyDown: 0,
+            buyUp: 0,
+            stopProfitDown: 0,
+            stopProfitUp: 0,
+            stopLossDown: 0,
+            stopLossUp: 0,
+            buyScope: '',
+            stopProfitScope: '',
+            stopLossScope: '',
+            content: ''
+        };
+        advList.push(currAdv);
+    } else {
+        currAdv = advList[advIdx];
+    }
+
+    var tmpMapItem;
+    for (var i = 0; i < _adviseColFieldValuMapping.length; i++) {
+        tmpMapItem = _adviseColFieldValuMapping[i];
+        currAdv[tmpMapItem.key] = tmpMapItem.format($(tmpMapItem.id).val());
+        if (tmpMapItem.items != null) {
+            for (var j = 0; j < tmpMapItem.items.length; j++) {
+                currAdv[tmpMapItem.items[j].key] = tmpMapItem.items[j].format($(tmpMapItem.items[j].id).val());
+            }
+        }
+    }
+
+    _editingAdviseItem = { obj: currAdv, rowIdx: advIdx, stockId: stockId };
+    $('.advise-item-list-tbody tr:eq(' + advIdx + ')').attr('data-symbol', '');
+    stopEditAdviseItem();
+};
+
+function buildNewAdviseItemRow(stockId, recIdx) {
+    tmpHTML = [];
+    tmpHTML.push('<tr data-symbol="new">')
+    tmpHTML.push('  <th scope="row">' + (recIdx + 1) + '</th>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-advise-item-edit" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-edit"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-warning btn-advise-item-remove" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-trash-alt"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-danger btn-advise-item-edit-cancel" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-times"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('       <button class="btn btn-sm btn-outline-success btn-advise-item-edit-ok" type="button" data-target="' + stockId + '|' + recIdx + '">');
+    tmpHTML.push('           <i class="fas fa-check"></i>');
+    tmpHTML.push('       </button>');
+    tmpHTML.push('  </td>');
+    tmpHTML.push('</tr>');
+    $('.advise-item-list-tbody').append($(tmpHTML.join('')));
+    bindAdviseItemEvents();
+};
+
+function removeAdviseItem(eventObj) {
+    var tmpStr = $(eventObj.currentTarget).attr("data-target");
+    var stockId = tmpStr.split('|')[0];
+    var adviseIndex = parseInt(tmpStr.split('|')[1]);
+    var tbody = $('#alert_Remove_Advise_Item .remove-advise-item-tbody');
+    tbody.empty();
+    var adviseList = _globalDataObj.stocks[stockId].advise;
+    var tmpHTML, advObj;
+    if (adviseList.length > adviseIndex && adviseIndex >= 0) {
+        tmpHTML = [];
+        advObj = adviseList[adviseIndex];
+        tmpHTML.push('<tr class="text-center">')
+        tmpHTML.push('  <td>' + advObj.date + '</td>');
+        tmpHTML.push('  <td>' + advObj.buyScope + '</td>');
+        tmpHTML.push('  <td>' + advObj.stopProfitScope + '</td>');
+        tmpHTML.push('  <td>' + advObj.stopLossScope + '</td>');
+        tmpHTML.push('  <td>' + advObj.content + '</td>');
+        tmpHTML.push('</tr>');
+        tbody.append($(tmpHTML.join('')));
+    }
+
+    $('.btn-reomve-advise-item-OK').attr('data-target', tmpStr);
+    $('.alert-remove-advise-item-mask').show();
+};
+/*Common Function*/
 function writeXMLString() {
     var xmlStrArr = [];
     xmlStrArr.push('<root>');
@@ -1111,6 +1487,12 @@ function writeXMLString() {
             xmlStrArr.push('</i>');
         }
 
+        xmlStrArr.push('<fundamentals>');
+        xmlStrArr.push(_globalDataObj.stocks[stockId].fundamentals);
+        xmlStrArr.push('</fundamentals>');
+        xmlStrArr.push('<technical>');
+        xmlStrArr.push(_globalDataObj.stocks[stockId].technical);
+        xmlStrArr.push('</technical>');
         xmlStrArr.push('</advise>');
         xmlStrArr.push('</stock>');
     }
@@ -1146,6 +1528,61 @@ function formatValue(value, dash) {
     }
 
     return value;
+};
+
+function numberToFixed(value, length) {
+    var len = typeof length == "undefined" ? 2 : length;
+    return value.toFixed(len);
+};
+
+function UpdatePositionDetailRow(stockId, modalId) {
+    var stockObj = _globalDataObj.stocks[stockId].market;
+    var summaryObj = StockLoader.calcSummaryData(stockId);
+    if (summaryObj.amount > 0) {
+        var tmpPLUnit = stockObj.priceTC - summaryObj.price;
+        $(modalId + ' .position-detail-row .cell-cost-price').text(summaryObj.price.toFixed(2));
+        $(modalId + ' .position-detail-row .cell-amount').text(summaryObj.amount);
+        $(modalId + ' .position-detail-row .cell-current-total-value').text(stockObj.priceTC * summaryObj.amount);
+        $(modalId + ' .position-detail-row .cell-profit-loss-unit').text(tmpPLUnit.toFixed(2));
+        //var tmpColor = stockObj.priceTC == stockObj.priceYC ? "black" : stockObj.priceTC > stockObj.priceYC ? "red" : "green";
+        var tmpColor = summaryObj.price > stockObj.priceTC ? "green" : "red";
+        $(modalId + ' .position-detail-row .cell-profit-loss-position').text((tmpPLUnit * summaryObj.amount).toFixed(2)).css('color', tmpColor);
+        $(modalId + ' .position-detail-row .cell-profit-loss-total').text('-').css('color', tmpColor);
+        $(modalId + ' .position-detail-row .cell-profit-loss-rate').text((tmpPLUnit / summaryObj.price * 100).toFixed(2) + '%').css('color', tmpColor);
+    } else {
+        $(modalId + ' .position-detail-row .cell-cost-price').text('-');
+        $(modalId + ' .position-detail-row .cell-amount').text('-');
+        $(modalId + ' .position-detail-row .cell-current-total-value').text('-');
+        $(modalId + ' .position-detail-row .cell-profit-loss-unit').text('-');
+        $(modalId + ' .position-detail-row .cell-profit-loss-position').text('-');
+        $(modalId + ' .position-detail-row .cell-profit-loss-total').text(summaryObj.PL.toFixed(2)).css('color', summaryObj.PL.value < 0 ? "green" : "red");
+        $(modalId + ' .position-detail-row .cell-profit-loss-rate').text('-');
+    }
+};
+
+function formatAdviseScope(down, up, isProfit) {
+    down = isNaN(down) ? '' : down;
+    up = isNaN(up) ? '' : up;
+    var retVal = '';
+    if (isProfit) {
+        if (down != '') {
+            if (up != '') {
+                retVal = parseFloat(down).toFixed(2) + '--' + parseFloat(up).toFixed(2);
+            } else {
+                retVal = '>' + parseFloat(down).toFixed(2);
+            }
+        }
+    } else {
+        if (up != '') {
+            if (down != '') {
+                retVal = parseFloat(down).toFixed(2) + '--' + parseFloat(up).toFixed(2);
+            } else {
+                retVal = '<' + parseFloat(up).toFixed(2);
+            }
+        }
+    }
+
+    return retVal;
 };
 
 function aaaa() {
