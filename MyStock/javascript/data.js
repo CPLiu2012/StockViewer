@@ -66,7 +66,7 @@ var _adviseColFieldValuMapping = [
         id: '#container_Add_Advise_Item_Buy',
         key: 'buyScope',
         convert: null,
-        format: formatAdviseScope,
+        format: null,
         items: [
             { id: '#txt_Add_Advise_Item_Buy_Down', key: 'buyDown', convert: numberToFixed, format: parseFloat },
             { id: '#txt_Add_Advise_Item_Buy_Up', key: 'buyUp', convert: numberToFixed, format: parseFloat }
@@ -76,7 +76,7 @@ var _adviseColFieldValuMapping = [
         id: '#container_Add_Advise_Item_Sell',
         key: 'stopProfitScope',
         convert: null,
-        format: formatAdviseScope,
+        format: null,
         items: [
             { id: '#txt_Add_Advise_Item_Sell_Down', key: 'stopProfitDown', convert: numberToFixed, format: parseFloat },
             { id: '#txt_Add_Advise_Item_Sell_Up', key: 'stopProfitUp', convert: numberToFixed, format: parseFloat }
@@ -86,13 +86,13 @@ var _adviseColFieldValuMapping = [
         id: '#container_Add_Advise_Item_Loss',
         key: 'stopLossScope',
         convert: null,
-        format: formatAdviseScope,
+        format: null,
         items: [
             { id: '#txt_Add_Advise_Item_Loss_Down', key: 'stopLossDown', convert: numberToFixed, format: parseFloat },
             { id: '#txt_Add_Advise_Item_Loss_Up', key: 'stopLossUp', convert: numberToFixed, format: parseFloat }
         ]
     },
-    { id: '#txt_Add_Advise_Item_Content', key: 'content', convert: null, format: null, items: null }
+    { id: '#txt_Add_Advise_Item_Content', key: 'content', convert: function (value) { return value; }, format: function (value) { return value; }, items: null }
 ];
 var _editingAdviseItem = { obj: null, rowIdx: -1, stockId: '' };
 /*For Interval Funcitons*/
@@ -1215,10 +1215,10 @@ function refereshAdviseDetail(stockId) {
         tmpHTML.push('<tr>')
         tmpHTML.push('  <th scope="row">' + (i + 1) + '</th>');
         tmpHTML.push('  <td>' + formatDateString(advObj.date) + '</td>');
-        tmpHTML.push('  <td class="text-right">' + advObj.buyScope + '</td>');
-        tmpHTML.push('  <td class="text-right">' + advObj.stopProfitScope + '</td>');
-        tmpHTML.push('  <td class="text-right">' + advObj.stopLossScope + '</td>');
-        tmpHTML.push('  <td class="text-right">' + advObj.content + '</td>');
+        tmpHTML.push('  <td>' + advObj.buyScope + '</td>');
+        tmpHTML.push('  <td>' + advObj.stopProfitScope + '</td>');
+        tmpHTML.push('  <td>' + advObj.stopLossScope + '</td>');
+        tmpHTML.push('  <td style="width:230px;"><marquee class="advise-item-content" align="left" behavior="scroll" direction="left" loop="-1" onMouseOut="this.stop()" onMouseOver="this.start()">' + advObj.content + '</marquee></td>');
         tmpHTML.push('  <td>');
         tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-advise-item-edit" type="button" data-target="' + stockId + '|' + i + '">');
         tmpHTML.push('           <i class="fas fa-edit"></i>');
@@ -1245,10 +1245,14 @@ function bindAdviseItemEvents() {
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-remove').unbind();
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').unbind();
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').unbind();
+    $('#adviseModal .advise-item-list-tbody .advise-item-content').unbind();
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit').click(startEditAdviseItem);
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-remove').click(removeAdviseItem);
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').click(cancelEditAdviseItem);
     $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').click(confirmEditAdviseItem);
+    $('#adviseModal .advise-item-list-tbody .advise-item-content').click(function () {
+        alert($(arguments[0].currentTarget).text());
+    });
 };
 
 function adjustAdviseOptBtnStatus(isEdit, rowIndex) {
@@ -1287,7 +1291,12 @@ function stopEditAdviseItem() {
         for (var i = 0; i < _adviseColFieldValuMapping.length; i++) {
             tmpMapItem = _adviseColFieldValuMapping[i];
             tmpVal = _editingAdviseItem.obj[tmpMapItem.key];
-            $(cells[i]).text(tmpMapItem.convert == null ? tmpVal : tmpMapItem.convert(tmpVal));
+            tmpVal = tmpMapItem.convert == null ? tmpVal : tmpMapItem.convert(tmpVal);
+            if (tmpMapItem.key == 'content') {
+                $($(cells[i]).find('marquee')).text(tmpVal).show();
+            } else {
+                $(cells[i]).text(tmpVal);
+            }
         }
 
         _editingAdviseItem = { obj: null, rowIdx: -1, stockId: '' };
@@ -1321,7 +1330,8 @@ function startEditAdviseItem(arg) {
             buyScope: '',
             stopProfitScope: '',
             stopLossScope: '',
-            content: ''
+            content: '',
+            isnew:true
         };
     }
 
@@ -1331,7 +1341,13 @@ function startEditAdviseItem(arg) {
     var tmpMapItem, tmpVal;
     for (var i = 0; i < cells.length - 1; i++) {
         tmpMapItem = _adviseColFieldValuMapping[i];
-        $(cells[i]).text("").append($(tmpMapItem.id).show());
+        if (tmpMapItem.key == 'content') {
+            $($(cells[i]).find('marquee')).text("").hide();
+            $(cells[i]).append($(tmpMapItem.id).show());
+        } else {
+            $(cells[i]).text("").append($(tmpMapItem.id).show());
+        }
+
         if (tmpMapItem.items != null) {
             for (var j = 0; j < tmpMapItem.items.length; j++) {
                 $(tmpMapItem.items[j].id).val(tmpMapItem.items[j].convert(currAdv[tmpMapItem.items[j].key]));
@@ -1348,7 +1364,7 @@ function cancelEditAdviseItem() {
     var advIdx = parseInt(tmpStr.split('|')[1]);
     var advList = _globalDataObj.stocks[stockId].advise;
     stopEditAdviseItem();
-    if (typeof advList[recIdx] != 'undefined' && advList[recIdx] != null) {
+    if (typeof advList[advIdx] != 'undefined' && advList[advIdx] != null) {
         _editingAdviseItem = { obj: advList[advIdx], rowIdx: advIdx, stockId: stockId };
     } else if ($('.advise-item-list-tbody tr:eq(' + advIdx + ')').length > 0) {
         _editingAdviseItem = { obj: null, advIdx: -1, stockId: '' };
@@ -1385,13 +1401,17 @@ function confirmEditAdviseItem() {
     var tmpMapItem;
     for (var i = 0; i < _adviseColFieldValuMapping.length; i++) {
         tmpMapItem = _adviseColFieldValuMapping[i];
-        currAdv[tmpMapItem.key] = tmpMapItem.format($(tmpMapItem.id).val());
+        currAdv[tmpMapItem.key] = tmpMapItem.format == null ? '' : tmpMapItem.format($(tmpMapItem.id).val());
         if (tmpMapItem.items != null) {
             for (var j = 0; j < tmpMapItem.items.length; j++) {
                 currAdv[tmpMapItem.items[j].key] = tmpMapItem.items[j].format($(tmpMapItem.items[j].id).val());
             }
         }
     }
+
+    currAdv.buyScope = formatAdviseScope(currAdv.buyDown, currAdv.buyUp, false);
+    currAdv.stopProfitScope = formatAdviseScope(currAdv.stopProfitDown, currAdv.stopProfitUp, true);
+    currAdv.stopLossScope = formatAdviseScope(currAdv.stopLossDown, currAdv.stopLossUp, false);
 
     _editingAdviseItem = { obj: currAdv, rowIdx: advIdx, stockId: stockId };
     $('.advise-item-list-tbody tr:eq(' + advIdx + ')').attr('data-symbol', '');
@@ -1404,10 +1424,9 @@ function buildNewAdviseItemRow(stockId, recIdx) {
     tmpHTML.push('  <th scope="row">' + (recIdx + 1) + '</th>');
     tmpHTML.push('  <td></td>');
     tmpHTML.push('  <td></td>');
-    tmpHTML.push('  <td class="text-right"></td>');
-    tmpHTML.push('  <td class="text-right"></td>');
-    tmpHTML.push('  <td class="text-right"></td>');
-    tmpHTML.push('  <td class="text-right"></td>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td></td>');
+    tmpHTML.push('  <td style="width:230px;"><marquee align="left" behavior="scroll" direction="left" loop="-1" onMouseOut="this.stop()" onMouseOver="this.start()"></marquee></td>');
     tmpHTML.push('  <td>');
     tmpHTML.push('       <button class="btn btn-sm btn-outline-primary btn-advise-item-edit" type="button" data-target="' + stockId + '|' + recIdx + '">');
     tmpHTML.push('           <i class="fas fa-edit"></i>');

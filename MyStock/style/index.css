@@ -214,7 +214,7 @@
 }
 
 #recordModal #btn_Record_Add_Item, #adviseModal #btn_Advise_Add_Item {
-    font-size: 7px;
+    font-size: 12px;
     padding: 5px;
 }
 
@@ -234,14 +234,15 @@
 
 #adviseModal div.form-check.form-check-inline {
     display: none;
-    width: 130px;
+    width: 100px;
     margin-right: 0px;
 }
 
     #adviseModal div.form-check.form-check-inline .advise-item-edit-field {
         display: inline;
-        max-width: 50px;
+        max-width: 40px;
         -webkit-appearance: none;
+        padding: 0px;
     }
 
     #adviseModal div.form-check.form-check-inline input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
