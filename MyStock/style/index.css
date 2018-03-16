@@ -262,3 +262,10 @@
     font-size: 14px;
     line-height: initial;
 }
+
+.current-drag-target-row {
+    border-radius: 0.25rem;
+    -webkit-box-shadow: 0 0 3px 3px #53b0ba;
+    -moz-box-shadow: 0 0 3px 3px #53b0ba;
+    box-shadow: 0 0 3px 3px #53b0ba;
+}

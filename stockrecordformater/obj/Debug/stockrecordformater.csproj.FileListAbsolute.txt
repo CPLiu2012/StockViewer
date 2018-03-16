@@ -1,0 +1,9 @@
+D:\Work\stockrecordformater\bin\Debug\stockrecordformater.exe.config
+D:\Work\stockrecordformater\bin\Debug\stockrecordformater.exe
+D:\Work\stockrecordformater\bin\Debug\stockrecordformater.pdb
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.csprojResolveAssemblyReference.cache
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.Form1.resources
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.Properties.Resources.resources
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.csproj.GenerateResource.Cache
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.exe
+D:\Work\stockrecordformater\obj\Debug\stockrecordformater.pdb

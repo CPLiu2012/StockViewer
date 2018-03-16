@@ -163,8 +163,7 @@ function onClickAdviseButton(eventObj) {
     refereshAdviseSummary(stockId);
 };
 
-function onDragButtonMouseDown(eventObj) {
-
+function onStartDragRow(eventObj) {
 };
 
 function onClickStockInfoName(eventObj) {
@@ -202,7 +201,12 @@ function buildMainTable() {
     $('.stock-info-btn').click(onClickStockInfoName);
     $('.data-button.record-btn').click(onClickRecordButton);
     $('.data-button.advise-btn').click(onClickAdviseButton);
-    $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
+    var dataRows = $('.main-table-body tr');
+    dataRows.attr('draggable', true);
+    for (var i = 0; i < dataRows.length; i++) {
+        bindRowDragEvents(dataRows[i], i);
+    }
+
     startRefereshDataTable();
     //_intervalForRefMainTB = window.setInterval("startRefereshDataTable();", _intervalForRefMainTB_Time);
 };
@@ -246,7 +250,7 @@ function buildStockDataRow(stockId, index) {
     tmpHTMLArr.push('       </button>');
     tmpHTMLArr.push('   </td>');
     tmpHTMLArr.push('   <td class="text-center" style="border:none;">');
-    tmpHTMLArr.push('       <button class="btn btn-sm btn-outline-secondary data-button drag-row-btn" type="button" data-rowindex="' + index + '" data-stockid="' + currData.id + '">');
+    tmpHTMLArr.push('       <button class="btn btn-sm btn-outline-secondary data-button drag-row-btn" type="button" data-stockid="' + currData.id + '">');
     tmpHTMLArr.push('           <i class="fas fa-align-justify"></i>');
     tmpHTMLArr.push('       </button>');
     tmpHTMLArr.push('   </td>');
@@ -254,19 +258,90 @@ function buildStockDataRow(stockId, index) {
     return tmpHTMLArr;
 };
 
+function bindRowDragEvents(rowEl) {
+    $(rowEl).on('dragenter', function (eventObj) {
+        $(this).addClass('current-drag-target-row');
+        return true;
+    });
+
+    $(rowEl).on('dragover', function (eventObj) {
+        eventObj.originalEvent.preventDefault();
+        return true;
+    });
+
+    $(rowEl).on('dragleave', function (eventObj) {
+        $(this).removeClass('current-drag-target-row');
+        return true;
+    });
+
+    $(rowEl).on('drop', function (eventObj) {
+        eventObj.originalEvent.dataTransfer.dropEffect = 'move';
+        $(this).removeClass('current-drag-target-row');
+        var tmpIdArr = $(this).attr('id').split('_');
+        dragAndDropDataRow(eventObj.originalEvent.dataTransfer.getData("text"), tmpIdArr[tmpIdArr.length - 1]);
+        return true;
+    });
+
+    $(rowEl).on('dragstart', function (eventObj) {
+        eventObj.originalEvent.dataTransfer.effectAllowed = "move";
+        var tmpIdArr = $(this).attr('id').split('_');
+        eventObj.originalEvent.dataTransfer.setData("text", tmpIdArr[tmpIdArr.length - 1]);
+        return true;
+    });
+
+    $(rowEl).on('dragend', function (eventObj) {
+        eventObj.originalEvent.dataTransfer.clearData("text");
+        return false
+    });
+};
+
+function dragAndDropDataRow(sourceId, targetId) {
+    var sourceEl = $('#stock_info_row_' + sourceId);
+    var targetEl = $('#stock_info_row_' + targetId);
+    var sourceIdx = sourceEl.index();
+    var targetIdx = targetEl.index();
+    if (sourceIdx == targetIdx) {
+        return;
+    }
+
+    var arrLength = _globalDataObj.list.length;
+    var arrPart_1, arrPart_2;
+    if (targetIdx == 0) {
+        sourceObj = _globalDataObj.list.splice(sourceIdx, 1);
+        _globalDataObj.list = sourceObj.concat(_globalDataObj.list);
+    } else if (targetIdx == arrLength - 1) {
+        sourceObj = _globalDataObj.list.splice(sourceIdx, 1);
+        _globalDataObj.list = _globalDataObj.list.concat(sourceObj);
+    } else {
+        var arrPart_1 = _globalDataObj.list.slice(0, targetIdx + 1);
+        var arrPart_2 = _globalDataObj.list.slice(targetIdx + 1);
+        var sourceObj = sourceIdx < arrPart_1.length ? arrPart_1.splice(sourceIdx, 1) : arrPart_1.splice(sourceIdx - arrPart_1.length, 1);
+        _globalDataObj.list = arrPart_1.concat(sourceObj, arrPart_2);
+    }
+
+    if (targetIdx == 0) {
+        targetEl.before(sourceEl);
+    } else {
+        targetEl.after(sourceEl);
+    }
+
+    var idxCells = $('.main-table-body tr th');
+    for (var i = 0; i < idxCells.length; i++) {
+        $(idxCells[i]).text(i + 1);
+    }
+
+    saveData();
+};
+
 function addStockToDataTable(stockId) {
-    var rowHTML = buildStockDataRow(stockId, _globalDataObj.list.length - 1);
-    $('.main-table-body').append($(rowHTML.join('')));
-    $('.stock_info_cell_alert .fa-bell').unbind();
-    $('.stock-info-btn').unbind();
-    $('.data-button.record-btn').unbind();
-    $('.data-button.advise-btn').unbind();
-    $('.data-button.drag-row-btn').unbind();
-    $('.stock_info_cell_alert .fa-bell').click(onClickStockInfoAlert);
-    $('.stock-info-btn').click(onClickStockInfoName);
-    $('.data-button.record-btn').click(onClickRecordButton);
-    $('.data-button.advise-btn').click(onClickAdviseButton);
-    $('.data-button.drag-row-btn').mousedown(onDragButtonMouseDown);
+    var newRow = $(buildStockDataRow(stockId, _globalDataObj.list.length - 1).join(''));
+    $('.main-table-body').append(newRow);
+    $(newRow.find('.stock_info_cell_alert .fa-bell')).click(onClickStockInfoAlert);
+    $(newRow.find('.stock-info-btn')).click(onClickStockInfoName);
+    $(newRow.find('.data-button.record-btn')).click(onClickRecordButton);
+    $(newRow.find('.data-button.advise-btn')).click(onClickAdviseButton);
+    //$(newRow.find('.data-button.drag-row-btn')).mousedown(onDragButtonMouseDown);
+    bindRowDragEvents(newRow);
 };
 
 function checkAdviseScope(stockDate) {
@@ -375,6 +450,7 @@ function initEvents() {
     $('#txt_Stock_Info_Advise_Symbol').on("change", function () {
         var index = $(arguments[0].currentTarget).attr('data-target');
         _globalDataObj.list[index].symbol = $('#txt_Stock_Info_Advise_Symbol').val();
+        saveData();
     });
 
     $('#tab_Header_Stock_Info a').on('click', function (eventObj) {
@@ -1115,6 +1191,8 @@ function confirmEditRecordItem() {
         currRec[tmpMapItem.key] = tmpMapItem.format($(tmpMapItem.id).val());
     }
 
+    saveData();
+
     _editingRecordItem = { obj: currRec, rowIdx: recIdx, stockId: stockId };
     stopEditRecordItem();
     refereshRecordSummary(stockId);
@@ -1331,7 +1409,7 @@ function startEditAdviseItem(arg) {
             stopProfitScope: '',
             stopLossScope: '',
             content: '',
-            isnew:true
+            isnew: true
         };
     }
 
@@ -1412,6 +1490,8 @@ function confirmEditAdviseItem() {
     currAdv.buyScope = formatAdviseScope(currAdv.buyDown, currAdv.buyUp, false);
     currAdv.stopProfitScope = formatAdviseScope(currAdv.stopProfitDown, currAdv.stopProfitUp, true);
     currAdv.stopLossScope = formatAdviseScope(currAdv.stopLossDown, currAdv.stopLossUp, false);
+
+    saveData();
 
     _editingAdviseItem = { obj: currAdv, rowIdx: advIdx, stockId: stockId };
     $('.advise-item-list-tbody tr:eq(' + advIdx + ')').attr('data-symbol', '');
@@ -1507,10 +1587,10 @@ function writeXMLString() {
         }
 
         xmlStrArr.push('<fundamentals>');
-        xmlStrArr.push(_globalDataObj.stocks[stockId].fundamentals);
+        xmlStrArr.push(_globalDataObj.stocks[_globalDataObj.list[i].id].fundamentals);
         xmlStrArr.push('</fundamentals>');
         xmlStrArr.push('<technical>');
-        xmlStrArr.push(_globalDataObj.stocks[stockId].technical);
+        xmlStrArr.push(_globalDataObj.stocks[_globalDataObj.list[i].id].technical);
         xmlStrArr.push('</technical>');
         xmlStrArr.push('</advise>');
         xmlStrArr.push('</stock>');
