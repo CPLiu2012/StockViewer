@@ -7,3 +7,12 @@ D:\Work\stockrecordformater\obj\Debug\stockrecordformater.Properties.Resources.r
 D:\Work\stockrecordformater\obj\Debug\stockrecordformater.csproj.GenerateResource.Cache
 D:\Work\stockrecordformater\obj\Debug\stockrecordformater.exe
 D:\Work\stockrecordformater\obj\Debug\stockrecordformater.pdb
+H:\Work\StockViewer\stockrecordformater\bin\Debug\stockrecordformater.exe.config
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.exe
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.pdb
+H:\Work\StockViewer\stockrecordformater\bin\Debug\stockrecordformater.exe
+H:\Work\StockViewer\stockrecordformater\bin\Debug\stockrecordformater.pdb
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.csprojResolveAssemblyReference.cache
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.Form1.resources
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.Properties.Resources.resources
+H:\Work\StockViewer\stockrecordformater\obj\Debug\stockrecordformater.csproj.GenerateResource.Cache

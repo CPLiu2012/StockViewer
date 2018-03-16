@@ -15,8 +15,9 @@ namespace stockrecordformater
 {
     public partial class Form1 : Form
     {
-        string yearSymbol = "";
-        string directoryPath = "D:\\Work\\StockViewer\\MyStock\\data";
+        //string directoryPath = "D:\\Work\\StockViewer\\MyStock\\data";
+        string directoryPath = "H:\\Work\\StockViewer\\MyStock\\data";
+        List<string> filterList = new List<string> { "指定交易登记指定", "新股申购", "申购返款", "新股入帐", "托管转出", "托管转入", "IPO市值配售", "配售认购", "余额更新" };
         List<recordObject> recordList = new List<recordObject>();
         Dictionary<string, List<recordObject>> stockDict;
         Dictionary<string, string> stockCodeDict;
@@ -32,7 +33,12 @@ namespace stockrecordformater
             int lineCount = 0;
             for (int i = 0; i < recordFilesNames.Length; i++)
             {
-                StreamReader sr = new StreamReader(recordFilesNames[i], Encoding.Default);
+                if (recordFilesNames[i].IndexOf("record") < 0)
+                {
+                    continue;
+                }
+
+                StreamReader sr = new StreamReader(recordFilesNames[i], Encoding.UTF8);
                 string tmpLine;
                 while ((tmpLine = sr.ReadLine()) != null)
                 {
@@ -80,6 +86,11 @@ namespace stockrecordformater
             this.list_Record.Hide();
             this.txt_Deferent.Show();
             this.txt_Deferent.Text = deferentSB.ToString();
+            if (File.Exists(this.directoryPath + "\\alldeal.txt"))
+            {
+                File.Delete(this.directoryPath + "\\alldeal.txt");
+            }
+            File.WriteAllText(this.directoryPath + "\\alldeal.txt", tmpSB.ToString(), Encoding.UTF8);
         }
         private bool checkIsDeal(string sourceStr)
         {
@@ -106,49 +117,69 @@ namespace stockrecordformater
                 sourceStr = sourceStr.Replace("  ", " ").Replace("盐 田 港", "盐田港");
             }
 
+            sourceStr = sourceStr.Replace("盐 田 港", "盐田港");
+            sourceStr = sourceStr.Replace("申购中签", "证券买入");
+            sourceStr = sourceStr.Replace("配售中签", "证券买入");
             return sourceStr;
         }
-
-        private void btn_GetUsefulRec_Click(object sender, EventArgs e)
+        private void btn_BuySell_Click(object sender, EventArgs e)
         {
-            //List<string> tmpRecordList = new List<string>();
-            //string[] inputStrArray = this.txt_Input.Text.Split(new char[2] { '\r', '\n' });
-            //string tmpString = "";
-            //string[] tmpArr;
-            //for (int i = 0; i < inputStrArray.Length; i++)
-            //{
-            //    tmpString = inputStrArray[i];
-            //    if (this.checkDateExists(tmpString))
-            //    {
-            //        tmpString = this.replaceSpaceChar(tmpString);
-            //        tmpArr = tmpString.Split(' ');
-            //        if (tmpArr.Length == 10)
-            //        {
-            //            if (this.checkAccount(tmpArr[1]) && this.checkDealType(tmpArr[3]))
-            //            {
-            //                tmpRecordList.Add(tmpString);
-            //            }
-            //        }
-            //    }
-            //}
-
-            //this.txt_LineCount_Deal.Text = tmpRecordList.Count.ToString();
-            //this.txt_Input.Text = string.Join("\r\n", tmpRecordList.ToArray());
-        }
-
-        private bool checkDealType(string sourceStr)
-        {
-            if (sourceStr.IndexOf("证券买入") == 0 || sourceStr.IndexOf("证券卖出") == 0)
+            string allText = this.txt_Input.Text;
+            string[] inputStrArray = this.txt_Input.Text.Split(new char[2] { '\r', '\n' });
+            string tmpString = "";
+            int lineCount = 0;
+            StringBuilder tmpSB = new StringBuilder();
+            StringBuilder deferentSB = new StringBuilder();
+            for (int i = 0; i < inputStrArray.Length; i++)
             {
-                return true;
+                tmpString = inputStrArray[i];
+                if (tmpString.IndexOf("证券买入") > 0 || tmpString.IndexOf("证券卖出") > 0)
+                {
+                    lineCount++;
+                    tmpSB.AppendLine(tmpString);
+                }
+                else if (string.Empty != tmpString)
+                {
+                    bool flag = true;
+                    for (int j = 0; j < filterList.Count; j++)
+                    {
+                        if (tmpString.IndexOf(filterList[j]) > 0)
+                        {
+                            flag = false;
+                            break;
+                        }
+                    }
+
+                    if (flag)
+                    {
+                        lineCount++;
+                        deferentSB.AppendLine(tmpString.Replace("红利差异税扣税", "红利扣税").Replace("红利差异税补扣", "红利扣税"));
+                    }
+                }
             }
 
-            return false;
-        }
+            this.txt_Input.Text = tmpSB.ToString();
+            this.txt_LineCount_Usable.Text = lineCount.ToString();
+            this.rtxt_XMLString.Hide();
+            this.list_Record.Hide();
+            this.txt_Deferent.Show();
+            this.txt_Deferent.Text = deferentSB.ToString();
+            if (File.Exists(this.directoryPath + "\\allbuysell.txt"))
+            {
+                File.Delete(this.directoryPath + "\\allbuysell.txt");
+            }
+            File.WriteAllText(this.directoryPath + "\\allbuysell.txt", tmpSB.ToString());
+            if (File.Exists(this.directoryPath + "\\allother.txt"))
+            {
+                File.Delete(this.directoryPath + "\\allother.txt");
+            }
 
+            File.WriteAllText(this.directoryPath + "\\allother.txt", deferentSB.ToString(), Encoding.UTF8);
+        }
         private void btn_AddToList_Click(object sender, EventArgs e)
         {
             this.rtxt_XMLString.Hide();
+            this.txt_Deferent.Hide();
             this.list_Record.Show();
             this.list_Record.BeginUpdate();
             string[] inputStrArray = this.txt_Input.Text.Split(new char[2] { '\r', '\n' });
@@ -166,7 +197,20 @@ namespace stockrecordformater
 
             this.list_Record.EndUpdate();
         }
+        private void btn_ToXML_Click(object sender, EventArgs e)
+        {
+            this.rtxt_XMLString.Show();
+            this.list_Record.Hide();
+            this.getStockDict();
+            XDocument xDoc = this.getStockXMLDoc();
+            this.rtxt_XMLString.Text = xDoc.Root.ToString();
+            if (File.Exists(this.directoryPath + "\\dataxml.txt"))
+            {
+                File.Delete(this.directoryPath + "\\dataxml.txt");
+            }
+            File.WriteAllText(this.directoryPath + "\\dataxml.txt", this.rtxt_XMLString.Text, Encoding.UTF8);
 
+        }
         private void Form1_Load(object sender, EventArgs e)
         {
             this.list_Record.Columns.Add("", 40, HorizontalAlignment.Center);
@@ -284,16 +328,6 @@ namespace stockrecordformater
                 return tempItem;
             }
         }
-
-        private void btn_ToXML_Click(object sender, EventArgs e)
-        {
-            this.rtxt_XMLString.Show();
-            this.list_Record.Hide();
-            this.getStockDict();
-            XDocument xDoc = this.getStockXMLDoc();
-            this.rtxt_XMLString.Text = xDoc.Root.ToString();
-        }
-
         private void getStockDict()
         {
             this.stockDict = new Dictionary<string, List<recordObject>>();
@@ -313,7 +347,6 @@ namespace stockrecordformater
                 }
             }
         }
-
         private XDocument getStockXMLDoc()
         {
             XDocument xDoc = new XDocument();
@@ -355,7 +388,6 @@ namespace stockrecordformater
 
             return xDoc;
         }
-
         private string getStockCode(string stockName)
         {
             try
@@ -376,6 +408,5 @@ namespace stockrecordformater
                 return stockName;
             }
         }
-
     }
 }
