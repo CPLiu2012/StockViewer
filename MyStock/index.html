@@ -30,15 +30,15 @@
     <div class="container-fluid main-wrap" style="padding-top: 5px;">
         <div class="row">
             <div class="col">
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btn_View_All">全部</button>
-                <button type="button" class="btn btn-sm btn-primary" id="btn_View_Focus">关注</button>
-                <button type="button" class="btn btn-sm btn-warning" id="btn_View_Position">持仓</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btn_View_All">全部参与</button>
+                <button type="button" class="btn btn-sm btn-primary" id="btn_View_Focus">重点关注</button>
+                <button type="button" class="btn btn-sm btn-warning" id="btn_View_Position">当前持有</button>
                 <button type="button" class="btn btn-sm btn-success" id="btn_View_Loss">过往亏损</button>
                 <button type="button" class="btn btn-sm btn-danger" id="btn_View_Profit">过往盈利</button>
             </div>
         </div>
-        <div class="row h-100">
-            <div class="col  h-100">
+        <div class="row">
+            <div class="col">
                 <table class="table table-striped main-table">
                     <thead>
                         <tr>
@@ -71,7 +71,15 @@
             </div>
         </div>
     </div>
-    <footer style="position:absolute; width:100%; height:30px; background-color: lightgray;">    </footer>
+    <footer style="position:absolute; width:100%; height:30px; background-color: lightgray;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col">
+                    <div class="text-primary" id="footer_Data_View"></div>
+                </div>
+            </div>
+        </div>
+    </footer>
     <div class="modal fade bd-example-modal-lg" id="stockInfoModal" tabindex="-1" role="dialog" aria-labelledby="stockInfoModalLabel" aria-hidden="true" data-backdrop="false">
         <div class="modal-dialog modal-lg" role="document" style="max-width:850px;">
             <div class="modal-content">
@@ -438,8 +446,11 @@
                                     <tbody class="record-item-list-tbody text-normal"></tbody>
                                 </table>
                                 <select class="form-control form-control-sm record-item-edit-field" id="sel_Add_Record_Item_Type">
-                                    <option value="1">买入</option>
-                                    <option value="-1">卖出</option>
+                                    <option value="b">买入</option>
+                                    <option value="s">卖出</option>
+                                    <option value="r">红股</option>
+                                    <option value="d">股息</option>
+                                    <option value="t">利税</option>
                                 </select>
                                 <input class="form-control form-control-sm record-item-edit-field" type="date" value="2011-08-19T13:45:00" id="txt_Add_Record_Item_Date">
                                 <input class="form-control form-control-sm record-item-edit-field" type="number" value="0" id="txt_Add_Record_Item_Amount">

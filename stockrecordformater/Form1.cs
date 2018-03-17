@@ -15,8 +15,8 @@ namespace stockrecordformater
 {
     public partial class Form1 : Form
     {
-        //string directoryPath = "D:\\Work\\StockViewer\\MyStock\\data";
-        string directoryPath = "H:\\Work\\StockViewer\\MyStock\\data";
+        string directoryPath = "D:\\Work\\StockViewer\\MyStock\\data";
+        //string directoryPath = "H:\\Work\\StockViewer\\MyStock\\data";
         List<string> filterList = new List<string> { "指定交易登记指定", "新股申购", "申购返款", "新股入帐", "托管转出", "托管转入", "IPO市值配售", "配售认购", "余额更新" };
         List<recordObject> recordList = new List<recordObject>();
         Dictionary<string, List<recordObject>> stockDict;
@@ -153,7 +153,9 @@ namespace stockrecordformater
                     if (flag)
                     {
                         lineCount++;
-                        deferentSB.AppendLine(tmpString.Replace("红利差异税扣税", "红利扣税").Replace("红利差异税补扣", "红利扣税"));
+                        tmpString = tmpString.Replace("红利差异税扣税", "红利扣税").Replace("红利差异税补扣", "红利扣税");
+                        deferentSB.AppendLine(tmpString);
+                        tmpSB.AppendLine(tmpString);
                     }
                 }
             }
@@ -182,7 +184,7 @@ namespace stockrecordformater
             this.txt_Deferent.Hide();
             this.list_Record.Show();
             this.list_Record.BeginUpdate();
-            string[] inputStrArray = this.txt_Input.Text.Split(new char[2] { '\r', '\n' });
+            string[] inputStrArray = (this.txt_Input.Text).Split(new char[2] { '\r', '\n' });
             for (int i = 0; i < inputStrArray.Length; i++)
             {
                 if (inputStrArray[i].Trim() == "")
@@ -222,6 +224,7 @@ namespace stockrecordformater
             this.list_Record.Columns.Add("均价", 50, HorizontalAlignment.Right);
             this.list_Record.Columns.Add("手续费", 50, HorizontalAlignment.Right);
             this.list_Record.Columns.Add("税费", 50, HorizontalAlignment.Right);
+            this.list_Record.Columns.Add("其他", 50, HorizontalAlignment.Right);
             this.rtxt_XMLString.Hide();
         }
         private class recordObject : Object
@@ -234,6 +237,7 @@ namespace stockrecordformater
             private double _price;
             private double _fee;
             private double _tax;
+            private double _dividend;
             private recordObject()
             {
 
@@ -299,13 +303,84 @@ namespace stockrecordformater
                     return this._tax;
                 }
             }
+            public double Dividend
+            {
+                get
+                {
+                    return this._dividend;
+                }
+            }
             public recordObject(string[] sourceStringArr)
             {
                 string tmpStr = sourceStringArr[0];
                 this._date = Convert.ToDateTime(tmpStr.Substring(0, 4) + "-" + tmpStr.Substring(4, 2) + "-" + tmpStr.Substring(6, 2));
                 tmpStr = sourceStringArr[3];
-                this._type = (tmpStr.IndexOf("买入") > 0 ? 1 : -1);
+                this._dividend = 0;
+                if (tmpStr.IndexOf("证券买入") == 0)
+                {
+                    this._type = 1;
+                }
+                else if (tmpStr.IndexOf("证券卖出") == 0)
+                {
+                    this._type = -1;
+                }
+                else if (tmpStr.IndexOf("股息入帐") == 0)
+                {
+                    this._type = 2;
+                    this._dividend = Convert.ToDouble(sourceStringArr[8]);
+                }
+                else if (tmpStr.IndexOf("红利扣税") == 0)
+                {
+                    this._type = -2;
+                    this._dividend = Convert.ToDouble(sourceStringArr[8]);
+                }
+                else if (tmpStr.IndexOf("红股入帐") == 0)
+                {
+                    this._type = 3;
+                }
+                else
+                {
+                    this._type = 0;
+                }
+
                 this._name = tmpStr.Substring(4);
+                switch (this._name)
+                {
+                    case "京东方Ａ":
+                        this._name = "京东方a";
+                        break;
+                    case "武钢股份":
+                        this._name = "宝钢股份";
+                        break;
+                    case "中核申购":
+                        this._name = "中国核电";
+                        break;
+                    case "歌尔声学":
+                        this._name = "歌尔股份";
+                        break;
+                    case "XD中信证":
+                        this._name = "中信证券";
+                        break;
+                    case "国投新集":
+                    case "*ST新集":
+                        this._name = "新集能源";
+                        break;
+                    case "鹿港科技":
+                    case "DR鹿港科":
+                        this._name = "鹿港文化";
+                        break;
+                    case "江南红箭":
+                        this._name = "中兵红箭";
+                        break;
+                    case "攀钢钒钛":
+                        this._name = "*ST钒钛";
+                        break;
+                    case "长城信息":
+                    case "长城电脑":
+                        this._name = "中国长城";
+                        break;
+                }
+
                 this._code = "";
                 this._amount = Convert.ToInt32(Convert.ToDouble(sourceStringArr[4]));
                 this._price = Convert.ToDouble(sourceStringArr[5]);
@@ -320,11 +395,32 @@ namespace stockrecordformater
                 tempItem.SubItems.Add(this._name);
                 tempItem.SubItems.Add(this._code.ToString());
                 tempItem.SubItems.Add(this._date.ToShortDateString());
-                tempItem.SubItems.Add(this._type == 1 ? "买入" : "卖出");
+                string tmpStr = "";
+                switch (this._type)
+                {
+                    case 1:
+                        tmpStr = "买入";
+                        break;
+                    case -1:
+                        tmpStr = "卖出";
+                        break;
+                    case 2:
+                        tmpStr = "股息";
+                        break;
+                    case -2:
+                        tmpStr = "利税";
+                        break;
+                    case 3:
+                        tmpStr = "红股";
+                        break;
+                }
+
+                tempItem.SubItems.Add(tmpStr);
                 tempItem.SubItems.Add(this._amount.ToString());
                 tempItem.SubItems.Add(this._price.ToString("f2"));
                 tempItem.SubItems.Add(this._fee.ToString("f2"));
                 tempItem.SubItems.Add(this._tax.ToString("f2"));
+                tempItem.SubItems.Add(this._dividend.ToString("f2"));
                 return tempItem;
             }
         }
@@ -332,11 +428,16 @@ namespace stockrecordformater
         {
             this.stockDict = new Dictionary<string, List<recordObject>>();
             this.stockCodeDict = new Dictionary<string, string>();
+            StringBuilder tmpSB = new StringBuilder();
             for (int i = 0; i < this.recordList.Count; i++)
             {
                 if (!this.stockDict.ContainsKey(this.recordList[i].Name))
                 {
                     this.recordList[i].Code = this.getStockCode(this.recordList[i].Name);
+                    if (this.recordList[i].Code.Length != 8)
+                    {
+                        tmpSB.AppendLine(this.recordList[i].Code);
+                    }
                     List<recordObject> newList = new List<recordObject>();
                     newList.Add(this.recordList[i]);
                     this.stockDict.Add(this.recordList[i].Name, newList);
@@ -346,6 +447,8 @@ namespace stockrecordformater
                     this.stockDict[this.recordList[i].Name].Add(this.recordList[i]);
                 }
             }
+
+            this.txt_Input.Text = tmpSB.ToString();
         }
         private XDocument getStockXMLDoc()
         {
@@ -371,10 +474,10 @@ namespace stockrecordformater
                         new XAttribute("t", ""),
                         new XAttribute("p", tmpList[i].Price.ToString()),
                         new XAttribute("a", tmpList[i].Amount.ToString()),
-                        new XAttribute("f", tmpList[i].Type == 1 ? "b" : "s"),
+                        new XAttribute("f", tmpList[i].Type > 0 ? (tmpList[i].Type == 1 ? "b" : tmpList[i].Type == 2 ? "d" : "r") : (tmpList[i].Type == -1 ? "s" : "t")),
                         new XAttribute("c", tmpList[i].Fee.ToString()),
                         new XAttribute("x", tmpList[i].Tax.ToString()),
-                        new XAttribute("e", "0")
+                        new XAttribute("e", tmpList[i].Dividend.ToString())
                     ));
                 }
 

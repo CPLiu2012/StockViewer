@@ -269,3 +269,16 @@
     -moz-box-shadow: 0 0 3px 3px #53b0ba;
     box-shadow: 0 0 3px 3px #53b0ba;
 }
+
+#footer_Data_View {
+    height: 30px;
+    line-height: 30px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+    #footer_Data_View span {
+        font-size: 14px;
+        font-weight: bold;
+        padding: 0px 5px;
+    }
