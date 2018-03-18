@@ -124,11 +124,23 @@ function _loadStockList() {
         }
     }
 
-    loadStockData();
+    loadStockData(null, true);
 };
 
-function loadStockData(stockIdArr) {
-    var inputArray = (typeof stockIdArr == 'undefined' ? _globalDataObj.stockIds.split(',') : stockIdArr);
+function loadStockData(stockIdArr, isInit) {
+    var inputArray = [];
+    if (typeof stockIdArr == "undefined" || stockIdArr == null) {
+        if (_globalFilterDataList.length == 0) {
+            _globalFilterDataList = _globalDataObj.list;
+        }
+
+        for (var i = 0; i < _globalFilterDataList.length; i++) {
+            inputArray.push(_globalFilterDataList[i].id);
+        }
+    } else {
+        inputArray = stockIdArr;
+    }
+
     var tmpArr = inputArray.splice(0, 50);
     if (tmpArr.length > 0) {
         $.ajax({
@@ -142,8 +154,11 @@ function loadStockData(stockIdArr) {
                     loadStockData(inputArray)
                 } else {
                     StockLoader.market();
-                    sortAllStockList();
-                    buildMainTable();
+                    if (isInit) {
+                        sortAllStockList();
+                        buildMainTable();
+                    }
+
                     updateFooterContent('all');
                 }
             },
@@ -184,8 +199,8 @@ function onClickStockInfoName(eventObj) {
     $('#img_Stock_Info_K_Line_Monthly').attr('src', _dataURLSina.k_line_m + stockId + '.gif?rnd=' + (new Date()).valueOf());
     startRefereshStockInforModal(tmpId);
     startRefereshKLine();
-    //_intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', _intervalForRefStockInfo_Time);
-    //_intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", _intervalForRefTimeSharingPlans);
+    _intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', _intervalForRefStockInfo_Time);
+    _intervalForRefTimeSharingPlans = window.setInterval("startRefereshKLine();", _intervalForRefTimeSharingPlans_Time);
 };
 
 function onClickStockInfoAlert(eventObj) {
@@ -215,8 +230,8 @@ function buildMainTable() {
         bindRowDragEvents(dataRows[i], i);
     }
 
-    startRefereshDataTable();
-    //_intervalForRefMainTB = window.setInterval("startRefereshDataTable();", _intervalForRefMainTB_Time);
+    //startRefereshDataTable();
+    _intervalForRefMainTB = window.setInterval("startRefereshDataTable();", _intervalForRefMainTB_Time);
 };
 
 function buildStockDataRow(stockId, index) {
@@ -373,27 +388,59 @@ function addStockToDataTable(stockId) {
 function checkAdviseScope(stockDate) {
     var alertObj = { alert: false, title: '' };
     var advises = stockDate.advise;
+    var tmpScope;
     if (stockDate.amount > 0 && advises.length > 0) {
-        advises = advises[advises.length - 1];
-        if ((isNaN(advises.buyDown) || stockDate.market.priceTC >= advises.buyDown) && (isNaN(advises.buyUp) || stockDate.market.priceTC <= advises.buyUp)) {
-            alertObj.alert = true;
+        if (stockDate.buyScope != '') {
+            alertObj.alert = checkPriceScope(stockDate.buyScope);
             alertObj.title = "到达买点范围";
         }
 
-        if ((isNaN(advises.stopLossDown) || stockDate.market.priceTC >= advises.stopLossDown) && (isNaN(advises.stopLossUp) || stockDate.market.priceTC <= advises.stopLossUp)) {
-            alertObj.alert = true;
-            alertObj.title = "到达止损范围";
+        if (stockDate.stopProfitScope != '') {
+            alertObj.alert = checkPriceScope(stockDate.buyScope);
+            alertObj.title = "到达止盈范围";
         }
 
-        if ((isNaN(advises.stopProfitDown) || stockDate.market.priceTC >= advises.stopProfitDown) && (isNaN(advises.stopProfitUp) || stockDate.market.priceTC <= advises.stopProfitUp)) {
-            alertObj.alert = true;
-            alertObj.title = "到达止盈范围";
-
+        if (stockDate.stopLossScope != '') {
+            alertObj.alert = checkPriceScope(stockDate.buyScope);
+            alertObj.title = "到达止损范围";
         }
     }
 
     return alertObj;
 };
+
+function checkPriceScope(scopeStr) {
+    var upVal = 0;
+    var downVal = 0;
+    var tmpValArr = [];
+    var retVal = false;
+    if (scopeStr.indexOf('--') > 0) {
+        tmpValArr = scopeStr.split('--');
+        upVal = tmpValArr[1];
+        downVal = tmpValArr[0];
+    } else if (scopeStr.indexOf('>') >= 0) {
+        tmpValArr = scopeStr.split('>');
+        downVal = tmpValArr[1];
+    } else if (scopeStr.indexOf('<') >= 0) {
+        tmpValArr = scopeStr.split('<');
+        downVal = tmpValArr[1];
+    }
+
+    if (upVal != 0 && downVal != 0) {
+        if (stockDate.market.priceTC <= upVal && stockDate.market.priceTC >= downVal) {
+            retVal = true;
+        }
+    } else if (upVal == 0 && downVal != 0) {
+        if (stockDate.market.priceTC >= downVal) {
+            retVal = true;
+        }
+    } else if (upVal != 0 && downVal == 0) {
+        if (stockDate.market.priceTC <= upVal) {
+            retVal = true;
+        }
+    }
+    return;
+}
 
 function saveData() {
     $.ajax({
@@ -885,6 +932,7 @@ function stopRefereshDataTable() {
 };
 
 function startRefereshDataTable() {
+    loadStockData(null, false);
     var currData, currMarket, tmpVal, tmpColor, stockId, currRowId;
     try {
         for (var i = 0; i < _globalFilterDataList.length; i++) {
@@ -912,9 +960,9 @@ function startRefereshDataTable() {
             $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(currData.totalPL, true)).css('color', currData.totalPL != 0 ? (currData.totalPL > 0 ? "red" : "green") : "black");
             tmpVal = _globalDataObj.stocks[stockId].advise;
             tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
-            $(currRowId + ' .stock_info_cell_advise_buy').text(tmpVal.buyScope);
-            $(currRowId + ' .stock_info_cell_advise_profit').text(tmpVal.stopProfitScope);
-            $(currRowId + ' .stock_info_cell_advise_loss').text(tmpVal.stopLossScope);
+            $(currRowId + ' .stock_info_cell_advise_buy').text(_globalDataObj.stocks[stockId].buyScope == '' ? '-' : _globalDataObj.stocks[stockId].buyScope);
+            $(currRowId + ' .stock_info_cell_advise_profit').text(_globalDataObj.stocks[stockId].stopProfitScope == '' ? '-' : _globalDataObj.stocks[stockId].stopProfitScope);
+            $(currRowId + ' .stock_info_cell_advise_loss').text(_globalDataObj.stocks[stockId].stopLossScope == '' ? '-' : _globalDataObj.stocks[stockId].stopLossScope);
             var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
             var alertObj = checkAdviseScope(currData);
             alertItem.attr('title', alertObj.title);
@@ -1135,6 +1183,17 @@ StockLoader.advise = function (stockId) {
         _globalDataObj.stocks[stockId].advise.push(newAdviseObj);
         _globalDataObj.stocks[stockId].fundamentals = $(advRoot.find('fundamentals')[0]).text();
         _globalDataObj.stocks[stockId].technical = $(advRoot.find('technical')[0]).text();
+        if (newAdviseObj.buyScope != '') {
+            _globalDataObj.stocks[stockId].buyScope = newAdviseObj.buyScope;
+        }
+
+        if (newAdviseObj.stopProfitScope != '') {
+            _globalDataObj.stocks[stockId].stopProfitScope = newAdviseObj.stopProfitScope;
+        }
+
+        if (newAdviseObj.stopLossScope != '') {
+            _globalDataObj.stocks[stockId].stopLossScope = newAdviseObj.stopLossScope;
+        }
     }
 };
 
