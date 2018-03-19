@@ -385,31 +385,31 @@ function addStockToDataTable(stockId) {
     bindRowDragEvents(newRow);
 };
 
-function checkAdviseScope(stockDate) {
+function checkAdviseScope(stockData) {
     var alertObj = { alert: false, title: '' };
-    var advises = stockDate.advise;
+    var advises = stockData.advise;
     var tmpScope;
-    if (stockDate.amount > 0 && advises.length > 0) {
-        if (stockDate.buyScope != '') {
-            alertObj.alert = checkPriceScope(stockDate.buyScope);
-            alertObj.title = "到达买点范围";
+    if (stockData.amount > 0 && advises.length > 0) {
+        if (stockData.buyScope != '') {
+            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.title = alertObj.alert ? "到达买点范围" : alertObj.title;
         }
 
-        if (stockDate.stopProfitScope != '') {
-            alertObj.alert = checkPriceScope(stockDate.buyScope);
-            alertObj.title = "到达止盈范围";
+        if (!alertObj.alert && stockData.stopProfitScope != '') {
+            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.title = alertObj.alert ? "到达止盈范围" : alertObj.title;
         }
 
-        if (stockDate.stopLossScope != '') {
-            alertObj.alert = checkPriceScope(stockDate.buyScope);
-            alertObj.title = "到达止损范围";
+        if (!alertObj.alert && stockData.stopLossScope != '') {
+            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.title = alertObj.alert ? "到达止损范围" : alertObj.title;
         }
     }
 
     return alertObj;
 };
 
-function checkPriceScope(scopeStr) {
+function checkPriceScope(scopeStr, stockData) {
     var upVal = 0;
     var downVal = 0;
     var tmpValArr = [];
@@ -427,19 +427,19 @@ function checkPriceScope(scopeStr) {
     }
 
     if (upVal != 0 && downVal != 0) {
-        if (stockDate.market.priceTC <= upVal && stockDate.market.priceTC >= downVal) {
+        if (stockData.market.priceTC <= upVal && stockData.market.priceTC >= downVal) {
             retVal = true;
         }
     } else if (upVal == 0 && downVal != 0) {
-        if (stockDate.market.priceTC >= downVal) {
+        if (stockData.market.priceTC >= downVal) {
             retVal = true;
         }
     } else if (upVal != 0 && downVal == 0) {
-        if (stockDate.market.priceTC <= upVal) {
+        if (stockData.market.priceTC <= upVal) {
             retVal = true;
         }
     }
-    return;
+    return retVal;
 }
 
 function saveData() {
@@ -933,7 +933,9 @@ function stopRefereshDataTable() {
 
 function startRefereshDataTable() {
     loadStockData(null, false);
-    var currData, currMarket, tmpVal, tmpColor, stockId, currRowId;
+    var currData, currMarket, tmpVal, tmpColor, stockId, currRowId, alertItem, alertObj;
+    var todayTotal = 0;
+    var allTotal = 0;
     try {
         for (var i = 0; i < _globalFilterDataList.length; i++) {
             stockId = _globalFilterDataList[i].id;
@@ -957,21 +959,27 @@ function startRefereshDataTable() {
             $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
             $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalCost, true));
             $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
-            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(currData.totalPL, true)).css('color', currData.totalPL != 0 ? (currData.totalPL > 0 ? "red" : "green") : "black");
+            todayTotal += currData.amount == 0 ? 0 : currMarket.rise_fall * currData.amount;
+            tmpVal = currData.amount == 0 ? currData.totalPL : (currMarket.priceTC - currData.costPrice) * currData.amount;
+            allTotal += tmpVal;
+            $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(tmpVal, true)).css('color', tmpVal != 0 ? (tmpVal > 0 ? "red" : "green") : "black");
             tmpVal = _globalDataObj.stocks[stockId].advise;
             tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
             $(currRowId + ' .stock_info_cell_advise_buy').text(_globalDataObj.stocks[stockId].buyScope == '' ? '-' : _globalDataObj.stocks[stockId].buyScope);
             $(currRowId + ' .stock_info_cell_advise_profit').text(_globalDataObj.stocks[stockId].stopProfitScope == '' ? '-' : _globalDataObj.stocks[stockId].stopProfitScope);
             $(currRowId + ' .stock_info_cell_advise_loss').text(_globalDataObj.stocks[stockId].stopLossScope == '' ? '-' : _globalDataObj.stocks[stockId].stopLossScope);
-            var alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
-            var alertObj = checkAdviseScope(currData);
+            alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
+            alertObj = checkAdviseScope(currData);
             alertItem.attr('title', alertObj.title);
             if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
-                alertItem.addClass('fa-spin');
-            } else {
-                alertItem.removeClass('fa-spin');
+                alertItem.addClass('fa-spin').css('font-size', '15px');
+            } else if (!alertObj.alert) {
+                alertItem.removeClass('fa-spin').css('font-size', '12px');
             }
         }
+
+        $('#text_Today_PL_Total').text(todayTotal.toFixed(2)).css('color', todayTotal != 0 ? (todayTotal > 0 ? "red" : "green") : "black");
+        $('#text_All_PL_Total').text(allTotal.toFixed(2)).css('color', allTotal != 0 ? (allTotal > 0 ? "red" : "green") : "black");
     }
     catch (ex) {
         console.log(stockId);
