@@ -585,6 +585,10 @@ function initEvents() {
         updateGlobalList()
     });
 
+	$('#stockInfoModal').on('hidden.bs.modal', function (e) {
+        stopRefereshStockInfoModal();
+    });	
+	
     $('#recordModal').on('hidden.bs.modal', function (e) {
         $('.record-item-list-tbody').empty();
         stopRefereshRecordModal();
@@ -915,6 +919,7 @@ function startRefereshStockInforModal(stockId) {
 function stopRefereshKLine() {
     window.clearInterval(_intervalForRefTimeSharingPlans);
     _intervalForRefTimeSharingPlans = null;
+	$('#img_Stock_Info_Time_Sharing').attr('src') = '';
 };
 
 function startRefereshKLine() {
@@ -942,7 +947,7 @@ function startRefereshDataTable() {
             currData = _globalDataObj.stocks[stockId];
             currMarket = currData.market;
             currRowId = '#stock_info_row_' + stockId;
-            tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red;' : 'green;');
+            tmpColor = (currMarket.rise_fall == 0 ? 'black' : currMarket.rise_fall > 0 ? 'red' : 'green');
             $(currRowId).css('color', tmpColor);
             $(currRowId + ' .stock_info_cell_symbol').text(_globalFilterDataList[i].symbol);
             //$(currRowId + ' .stock_info_cell_alert').text(_globalFilterDataList[i].symbol);
