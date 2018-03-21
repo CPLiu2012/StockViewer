@@ -977,8 +977,10 @@ function startRefereshDataTable() {
             alertObj = checkAdviseScope(currData);
             alertItem.attr('title', alertObj.title);
             if (alertObj.alert && !alertItem.hasClass('fa-spin')) {
+				alertItem.attr('data-prefix', 'fas');
                 alertItem.addClass('fa-spin').css('font-size', '15px');
             } else if (!alertObj.alert) {
+				alertItem.attr('data-prefix', 'far');
                 alertItem.removeClass('fa-spin').css('font-size', '12px');
             }
         }
