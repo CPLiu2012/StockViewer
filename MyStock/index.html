@@ -15,7 +15,7 @@
     <script src="javascript/common/bootstrap.js"></script>
     <script src="javascript/common/common.js"></script>
     <script src="javascript/data.js"></script>
-    <link rel="stylesheet" href="style/index.css">	
+    <link rel="stylesheet" href="style/index.css">
 </head>
 <body style="height:100%">
     <header>
@@ -274,16 +274,19 @@
                                                     <div class="card-block">
                                                         <ul class="nav nav-tabs" id="tab_Header_Stock_Info" role="tablist">
                                                             <li class="nav-item">
-                                                                <a class="nav-link active" data-toggle="tab" href="#tab_KLine_Time_Sharing" role="tab">分时</a>
+                                                                <a class="nav-link active" data-toggle="tab" href="#tab_KLine_Time_Sharing" role="tab" aria-controls="tab_KLine_Time_Sharing">分时</a>
                                                             </li>
                                                             <li class="nav-item">
-                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Daily" role="tab">日K</a>
+                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Daily" role="tab" aria-controls="tab_KLine_Daily">日K</a>
                                                             </li>
                                                             <li class="nav-item">
-                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Weekly" role="tab">周K</a>
+                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Weekly" role="tab" aria-controls="tab_KLine_Weekly">周K</a>
                                                             </li>
                                                             <li class="nav-item">
-                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Monthly" role="tab">月K</a>
+                                                                <a class="nav-link" data-toggle="tab" href="#tab_KLine_Monthly" role="tab" aria-controls="tab_KLine_Monthly">月K</a>
+                                                            </li>
+                                                            <li class="nav-item">
+                                                                <a class="nav-link" data-toggle="tab" href="#tab_Canvas" role="tab" aria-controls="tab_Canvas">月K</a>
                                                             </li>
                                                         </ul>
                                                         <div class="tab-content" style="width:545px; height:300px;">
@@ -299,6 +302,9 @@
                                                             <div class="tab-pane" id="tab_KLine_Monthly" role="tabpanel">
                                                                 <img class="img-fluid" src="http://image.sinajs.cn/newchart/monthly/n/" id="img_Stock_Info_K_Line_Monthly" />
                                                             </div>
+                                                            <div class="tab-pane" id="tab_Canvas" role="tabpanel">
+                                                                <canvas id="canvas_Time_Sharing" width="545" height="300" style="width:545px; height:300px;"></canvas>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -312,50 +318,10 @@
                                                             <td class="text-left" style="width:35px;">委差</td>
                                                             <td class="text-right entrust-deviation"></td>
                                                         </tr>
-                                                        <tr class="text-right">
-                                                            <td class="text-left">买五</td>
-                                                            <td class="text-right position-b-5-p">1111</td>
-                                                            <td class="text-right position-b-5-a" colspan="2">111</td>
-                                                        </tr>
                                                         <tr>
-                                                            <td class="text-left">买四</td>
-                                                            <td class="text-right position-b-4-p"></td>
-                                                            <td class="text-right position-b-4-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">买三</td>
-                                                            <td class="text-right position-b-3-p"></td>
-                                                            <td class="text-right position-b-3-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">买二</td>
-                                                            <td class="text-right position-b-2-p"></td>
-                                                            <td class="text-right position-b-2-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">买一</td>
-                                                            <td class="text-right position-b-1-p"></td>
-                                                            <td class="text-right position-b-1-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">成交</td>
-                                                            <td class="text-right position-deal-p"></td>
-                                                            <td colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">卖一</td>
-                                                            <td class="text-right position-s-1-p"></td>
-                                                            <td class="text-right position-s-1-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">卖二</td>
-                                                            <td class="text-right position-s-2-p"></td>
-                                                            <td class="text-right position-s-2-a" colspan="2"></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="text-left">卖三</td>
-                                                            <td class="text-right position-s-3-p"></td>
-                                                            <td class="text-right position-s-3-a" colspan="2"></td>
+                                                            <td class="text-left">卖五</td>
+                                                            <td class="text-right position-s-5-p"></td>
+                                                            <td class="text-right position-s-5-a" colspan="2"></td>
                                                         </tr>
                                                         <tr>
                                                             <td class="text-left">卖四</td>
@@ -363,9 +329,49 @@
                                                             <td class="text-right position-s-4-a" colspan="2"></td>
                                                         </tr>
                                                         <tr>
-                                                            <td class="text-left">卖五</td>
-                                                            <td class="text-right position-s-5-p"></td>
-                                                            <td class="text-right position-s-5-a" colspan="2"></td>
+                                                            <td class="text-left">卖三</td>
+                                                            <td class="text-right position-s-3-p"></td>
+                                                            <td class="text-right position-s-3-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">卖二</td>
+                                                            <td class="text-right position-s-2-p"></td>
+                                                            <td class="text-right position-s-2-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">卖一</td>
+                                                            <td class="text-right position-s-1-p"></td>
+                                                            <td class="text-right position-s-1-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">成交</td>
+                                                            <td class="text-right position-deal-p"></td>
+                                                            <td colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">买一</td>
+                                                            <td class="text-right position-b-1-p"></td>
+                                                            <td class="text-right position-b-1-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">买二</td>
+                                                            <td class="text-right position-b-2-p"></td>
+                                                            <td class="text-right position-b-2-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">买三</td>
+                                                            <td class="text-right position-b-3-p"></td>
+                                                            <td class="text-right position-b-3-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td class="text-left">买四</td>
+                                                            <td class="text-right position-b-4-p"></td>
+                                                            <td class="text-right position-b-4-a" colspan="2"></td>
+                                                        </tr>
+                                                        <tr class="text-right">
+                                                            <td class="text-left">买五</td>
+                                                            <td class="text-right position-b-5-p">1111</td>
+                                                            <td class="text-right position-b-5-a" colspan="2">111</td>
                                                         </tr>
                                                         <tr style="background-color:#9ed0f4;">
                                                             <td class="text-left">内盘</td>
@@ -376,6 +382,10 @@
                                                     </tbody>
                                                 </table>
                                             </td>
+                                        </tr>
+                                        <tr>
+                                            <td></td>
+                                            <td></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -642,11 +652,11 @@
             initPage();
         });
     </script>
-	<style>		
-.stock_info_cell_priceTC, .stock_info_cell_rise_fall ,.stock_info_cell_rise_fall_ratio{
-	background-color:silver;
-	border-bottom:1px solid black;
-}
-</style>
+    <style>
+        .stock_info_cell_priceTC, .stock_info_cell_rise_fall, .stock_info_cell_rise_fall_ratio {
+            background-color: silver;
+            border-bottom: 1px solid black;
+        }
+    </style>
 </body>
 </html>
