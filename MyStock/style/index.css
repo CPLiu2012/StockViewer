@@ -292,3 +292,9 @@
         font-weight: bold;
         padding: 0px 5px;
     }
+
+.canvas-time-sharing {
+    position:absolute;
+    top:36px;
+    left:0px;
+}

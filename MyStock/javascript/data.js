@@ -6,6 +6,7 @@
 var _globalFilterDataList = [];
 var _globalFilterOutList = [];
 var _historyDoc = null;
+var _totalInvestment = 0;
 /*URL For Get Data*/
 var _dataURL = {
     //当前信息, 返回v_sz000858=""
@@ -13,7 +14,7 @@ var _dataURL = {
     //当前简要信息, 返回v_s_sz000858=""
     detail_now_simple: "http://qt.gtimg.cn/q=s_sz000001",
     //分时, 返回min_data=""
-    timeSharing_plans: "http://data.gtimg.cn/flashdata/hushen/minute/sz000001.js",
+    timeSharing_plans: "http://data.gtimg.cn/flashdata/hushen/minute/",
     //五天分时图
     timeSharing_plans_5d: "http://data.gtimg.cn/flashdata/hushen/4day/sz/sz000002.js",
     //日K, 返回daily_data_13=""
@@ -98,15 +99,17 @@ var _adviseColFieldValuMapping = [
 var _editingAdviseItem = { obj: null, rowIdx: -1, stockId: '' };
 /*For Interval Funcitons*/
 var _intervalForRefMainTB_Time = 1000;
-var _intervalForRefStockInfo_Time = 1000;
-var _intervalForRefTimeSharingPlans_Time = 5000;
-var _intervalForRefRecordModal_Time = 2000;
-var _intervalForRefAdviseModal_Time = 2000;
+var _intervalForRefStockInfo_Time = 60000;
+var _intervalForRefTimeSharingPlans_Time = 10000;
+var _intervalForRefTimeSharingCanvas_Time = 1000;
+var _intervalForRefRecordModal_Time = 3000;
+var _intervalForRefAdviseModal_Time = 3000;
 var _intervalForRefMainTB = null;
 var _intervalForRefStockInfo = null;
 var _intervalForRefTimeSharingPlans = null;
 var _intervalForRefRecordModal = null;
 var _intervalForRefAdviseModal = null;
+var _intervalForRefTimeSharingCanvas = null;
 
 /*Global Functions*/
 function _loadStockList() {
@@ -117,8 +120,9 @@ function _loadStockList() {
     for (var i = 0; i < stockEls.length; i++) {
         stockId = $(stockEls[i]).attr('id');
         symbol = $(stockEls[i]).attr('symbol');
+        focus = $(stockEls[i]).attr('focus') == '1' ? true : false;
         _globalDataObj.stockIds += _globalDataObj.stockIds.indexOf(stockId) < 0 ? stockId + "," : "";
-        _globalDataObj.list.push({ id: stockId, symbol: symbol });
+        _globalDataObj.list.push({ id: stockId, symbol: symbol, focus: focus });
         if (typeof _globalDataObj.stocks[stockId] == 'undefined' || _globalDataObj.stocks[stockId] == null) {
             StockLoader.history(stockId);
         }
@@ -165,7 +169,7 @@ function loadStockData(stockIdArr, isInit) {
             error: function () { }
         });
     }
-}
+};
 
 function onClickRecordButton(eventObj) {
     var stockId = $(eventObj.currentTarget).attr('data-stockid');
@@ -188,6 +192,32 @@ function onClickToTopButton(eventObj) {
     dragAndDropDataRow(sourceId, targetId);
 };
 
+function onClickSetFocusButton(eventObj) {
+    var targetEl = $(eventObj.currentTarget);
+    var iconEl = $(targetEl.find('svg'));
+    var stockId = targetEl.attr('data-stockid');
+    var oldClass = iconEl.hasClass('fa-eye') ? 'fa-eye' : 'fa-eye-slash';
+    var newClass = oldClass == 'fa-eye' ? 'fa-eye-slash' : 'fa-eye';
+    var newFocus = oldClass == 'fa-eye' ? false : true;
+    iconEl.removeClass(oldClass).addClass(newClass);
+    targetEl.css('color', oldClass == 'fa-eye' ? 'green' : 'red');
+    for (var i = 0; i < _globalDataObj.list.length; i++) {
+        if (_globalDataObj.list[i].id == stockId) {
+            _globalDataObj.list[i].focus = newFocus;
+            break;
+        }
+    }
+
+    for (var i = 0; i < _globalFilterDataList.length; i++) {
+        if (_globalFilterDataList.id == stockId) {
+            _globalFilterDataList.focus = newFocus;
+            break;
+        }
+    }
+
+    saveData();
+};
+
 function onClickStockInfoName(eventObj) {
     var tmpId = $(eventObj.currentTarget).attr('data-stockid');
     $('#tab_Header_Stock_Info a').removeClass('active');
@@ -197,6 +227,7 @@ function onClickStockInfoName(eventObj) {
     $('#img_Stock_Info_K_Line_Daily').attr('src', _dataURLSina.k_line_d + stockId + '.gif?rnd=' + (new Date()).valueOf());
     $('#img_Stock_Info_K_Line_Weekly').attr('src', _dataURLSina.k_line_w + stockId + '.gif?rnd=' + (new Date()).valueOf());
     $('#img_Stock_Info_K_Line_Monthly').attr('src', _dataURLSina.k_line_m + stockId + '.gif?rnd=' + (new Date()).valueOf());
+    $('#stockInfoModal').attr('data-stockid', stockId);
     startRefereshStockInforModal(tmpId);
     startRefereshKLine();
     _intervalForRefStockInfo = window.setInterval('startRefereshStockInforModal("' + stockId + '")', _intervalForRefStockInfo_Time);
@@ -224,6 +255,7 @@ function buildMainTable() {
     $('.data-button.record-btn').click(onClickRecordButton);
     $('.data-button.advise-btn').click(onClickAdviseButton);
     $('.data-button.drag-row-btn').click(onClickToTopButton);
+    $('.data-button.set-focus-btn').click(onClickSetFocusButton);
     var dataRows = $('.main-table-body tr');
     dataRows.attr('draggable', true);
     for (var i = 0; i < dataRows.length; i++) {
@@ -280,6 +312,10 @@ function buildStockDataRow(stockId, index) {
     tmpHTMLArr.push('   <td class="text-center" style="border:none;">');
     tmpHTMLArr.push('       <button class="btn btn-sm btn-outline-secondary data-button drag-row-btn" type="button" data-stockid="' + currData.id + '">');
     tmpHTMLArr.push('           <i class="fas fa-arrow-circle-up"></i>');
+    tmpHTMLArr.push('       </button>');
+    tmpColor = (_globalFilterDataList[index].focus ? ' style="color: red;"' : ' style="color: green;"');
+    tmpHTMLArr.push('       <button class="btn btn-sm btn-outline-secondary data-button set-focus-btn" type="button" data-stockid="' + currData.id + '" ' + tmpColor + '>');
+    tmpHTMLArr.push('           <i class="fas fa-eye' + (_globalFilterDataList[index].focus ? '' : '-slash') + '"></i>');
     tmpHTMLArr.push('       </button>');
     tmpHTMLArr.push('   </td>');
     tmpHTMLArr.push('</tr>');
@@ -382,6 +418,7 @@ function addStockToDataTable(stockId) {
     $(newRow.find('.data-button.record-btn')).click(onClickRecordButton);
     $(newRow.find('.data-button.advise-btn')).click(onClickAdviseButton);
     $(newRow.find('.data-button.drag-row-btn')).click(onClickToTopButton);
+    $(newRow.find('.data-button.set-focus-btn')).click(onClickSetFocusButton);
     bindRowDragEvents(newRow);
 };
 
@@ -391,17 +428,17 @@ function checkAdviseScope(stockData) {
     var tmpScope;
     if (stockData.amount > 0 && advises.length > 0) {
         if (stockData.buyScope != '') {
-            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.alert = checkPriceScope(stockData.buyScope, stockData, false);
             alertObj.title = alertObj.alert ? "到达买点范围" : alertObj.title;
         }
 
         if (!alertObj.alert && stockData.stopProfitScope != '') {
-            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.alert = checkPriceScope(stockData.stopProfitScope, stockData, false);
             alertObj.title = alertObj.alert ? "到达止盈范围" : alertObj.title;
         }
 
         if (!alertObj.alert && stockData.stopLossScope != '') {
-            alertObj.alert = checkPriceScope(stockData.buyScope, stockData);
+            alertObj.alert = checkPriceScope(stockData.stopLossScope, stockData, true);
             alertObj.title = alertObj.alert ? "到达止损范围" : alertObj.title;
         }
     }
@@ -409,7 +446,7 @@ function checkAdviseScope(stockData) {
     return alertObj;
 };
 
-function checkPriceScope(scopeStr, stockData) {
+function checkPriceScope(scopeStr, stockData, isLoss) {
     var upVal = 0;
     var downVal = 0;
     var tmpValArr = [];
@@ -433,14 +470,17 @@ function checkPriceScope(scopeStr, stockData) {
     } else if (upVal == 0 && downVal != 0) {
         if (stockData.market.priceTC >= downVal) {
             retVal = true;
+        } else if (isLoss && stockData.market.priceTC <= downVal) {
+            retVal = true;
         }
     } else if (upVal != 0 && downVal == 0) {
         if (stockData.market.priceTC <= upVal) {
             retVal = true;
         }
     }
+
     return retVal;
-}
+};
 
 function saveData() {
     $.ajax({
@@ -482,7 +522,7 @@ function initEvents() {
         var stockId = getFormatedStockId();
         if (stockId != "") {
             _globalDataObj.stockIds += stockId + ",";
-            _globalDataObj.list.push({ id: stockId, symbol: "" });
+            _globalDataObj.list.push({ id: stockId, symbol: "", focus: false });
             _globalDataObj.stocks[stockId] = { id: stockId, market: {}, records: [], advise: [] };
             addStock(stockId);
         }
@@ -492,7 +532,7 @@ function initEvents() {
         var stockId = $(arguments[0].currentTarget).val().trim();
         if (stockId != "" && (typeof _globalDataObj.stocks[stockId] == 'undefined' || _globalDataObj.stocks[stockId] == null)) {
             _globalDataObj.stockIds += stockId + ",";
-            _globalDataObj.list.push({ id: stockId, symbol: "" });
+            _globalDataObj.list.push({ id: stockId, symbol: "", focus: false });
             _globalDataObj.stocks[stockId] = { id: stockId, market: {}, records: [], advise: [] };
             addStock(stockId);
         }
@@ -585,7 +625,7 @@ function initEvents() {
         updateGlobalList()
     });
 
-    $('#stockInfoModal').on('shown.bs.modal', function (e) {        
+    $('#stockInfoModal').on('shown.bs.modal', function (e) {
         $('#tab_Header_Stock_Info a:first').tab('show');
         $('#stockInfoModal .tab-content .tab-pane').removeClass('show').removeClass('active');
         $('#stockInfoModal .tab-content .tab-pane:first').addClass('show').addClass('active');
@@ -662,6 +702,10 @@ function initEvents() {
         var stockId = $('#txt_Advise_Technical').attr('data-target');
         _globalDataObj.stocks[stockId].technical = $('#txt_Advise_Technical').val();
     });
+
+    $('a[href="#tab_Canvas"][aria-controls=tab_Canvas]').on('show.bs.tab', function (e) {
+        _intervalForRefTimeSharingCanvas = window.setInterval('startRefereshTimeSharing()', _intervalForRefTimeSharingCanvas_Time);
+    });
 };
 
 function filterStock_Position() {
@@ -671,9 +715,9 @@ function filterStock_Position() {
     for (var i = 0; i < _globalDataObj.list.length; i++) {
         tmpStock = _globalDataObj.stocks[_globalDataObj.list[i].id];
         if (tmpStock.amount > 0) {
-            _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+            _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: _globalDataObj.list[i].focus });
         } else {
-            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: _globalDataObj.list[i].focus });
         }
     }
 };
@@ -686,15 +730,15 @@ function filterStock_ProfitLoss(flag) {
         tmpStock = _globalDataObj.stocks[_globalDataObj.list[i].id];
         if (tmpStock.amount == 0) {
             if (tmpStock.records.length > 0 && ((flag == 1 && tmpStock.totalPL >= 0) || (flag == -1 && tmpStock.totalPL < 0))) {
-                _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+                _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: _globalDataObj.list[i].focus });
             } else {
-                _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+                _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: _globalDataObj.list[i].focus });
             }
         } else {
-            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: _globalDataObj.list[i].focus });
         }
     }
-}
+};
 
 function filterStock_Focus() {
     _globalFilterDataList = [];
@@ -702,10 +746,12 @@ function filterStock_Focus() {
     var tmpStock;
     for (var i = 0; i < _globalDataObj.list.length; i++) {
         tmpStock = _globalDataObj.stocks[_globalDataObj.list[i].id];
-        if (_globalDataObj.list[i].symbol != "" || tmpStock.amount > 0) {
-            _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+        if (_globalDataObj.list[i].symbol != "" || tmpStock.amount > 0 || _globalDataObj.list[i].focus) {
+            _globalDataObj.list[i].focus = true;
+            _globalFilterDataList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: true });
         } else {
-            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol });
+            _globalDataObj.list[i].focus = false;
+            _globalFilterOutList.push({ id: _globalDataObj.list[i].id, symbol: _globalDataObj.list[i].symbol, focus: false });
         }
     }
 };
@@ -728,14 +774,14 @@ function filterStocksByType(type) {
             break;
     }
 
-    updateFooterContent();
+    updateFooterContent(type);
 };
 
 function updateGlobalList() {
     _globalDataObj.list = _globalFilterDataList.concat(_globalFilterOutList);
 };
 
-function updateFooterContent(type) {
+function calcPLAndTVInList(stockList) {
     var profitCount = 0;
     var lossCount = 0;
     var totalProfit = 0;
@@ -744,8 +790,9 @@ function updateFooterContent(type) {
     var positionCount = 0;
     var totalValue = 0;
     var tmpObj = null;
-    for (var i = 0; i < _globalFilterDataList.length; i++) {
-        tmpObj = _globalDataObj.stocks[_globalFilterDataList[i].id];
+    var todayTotal = 0;
+    for (var i = 0; i < stockList.length; i++) {
+        tmpObj = _globalDataObj.stocks[stockList[i].id];
         if (tmpObj.totalPL > 0) {
             totalProfit += tmpObj.totalPL;
             profitCount++;
@@ -758,43 +805,68 @@ function updateFooterContent(type) {
             positionCount++;
             totalAmount += tmpObj.amount;
             totalValue += tmpObj.market.priceTC == 0 ? tmpObj.amount * tmpObj.market.priceYC : tmpObj.amount * tmpObj.market.priceTC;
+            todayTotal += tmpObj.market.rise_fall * tmpObj.amount;
         }
     }
+
+    return {
+        stockCount: stockList.length,
+        positionCount: positionCount,
+        totalAmount: totalAmount,
+        totalValue: totalValue,
+        profitCount: profitCount,
+        totalProfit: totalProfit,
+        lossCount: lossCount,
+        totalLoss: totalLoss,
+        totalPL: totalProfit + totalLoss,
+        todayTotal: todayTotal
+    };
+};
+
+function updateFooterContent(type) {
+    var currCalcObj = calcPLAndTVInList(_globalFilterDataList);
+    var otherCalcObj = calcPLAndTVInList(_globalFilterOutList);
+    var tmpVal = otherCalcObj.todayTotal + currCalcObj.todayTotal;
+    $('#text_Today_PL_Total').text(tmpVal.toFixed(2)).css('color', tmpVal != 0 ? (tmpVal > 0 ? "red" : "green") : "black");
+    tmpVal = currCalcObj.totalPL + otherCalcObj.totalPL;
+    $('#text_All_PL_Total').text(tmpVal.toFixed(2)).css('color', tmpVal != 0 ? (tmpVal > 0 ? "red" : "green") : "black");
+    tmpVal = _totalInvestment - currCalcObj.totalValue - otherCalcObj.totalValue + currCalcObj.totalPL + otherCalcObj.totalPL;
+    $('#text_Available').text(tmpVal.toFixed(2));
 
     var tmpHTMLArr = [];
     switch (type) {
         case 'position':
-            tmpHTMLArr.push('总计持有: <span class="text-info">' + _globalFilterDataList.length + "</span>支股票");
-            tmpHTMLArr.push('持仓数量: <span class="text-info">' + totalAmount + "</span>股");
-            tmpHTMLArr.push('持仓市值: <span class="text-info">' + totalValue.toFixed(2) + "</span>股");
-            tmpHTMLArr.push('其中盈利: <span class="text-danger">' + profitCount + '</span>支');
-            tmpHTMLArr.push('共计:<span class="text-danger">' + totalProfit.toFixed(2) + "</span>");
-            tmpHTMLArr.push('其中亏损: <span class="text-success">' + lossCount + '</span>支');
-            tmpHTMLArr.push('共计:<span class="text-success">' + Math.abs(totalLoss).toFixed(2) + "</span>");
-            tmpHTMLArr.push('总计' + (totalProfit + totalLoss > 0 ? '盈利' : '亏损') + ':<span class="' + (totalProfit + totalLoss > 0 ? 'text-danger' : 'text-success') + '">' + Math.abs(totalProfit + totalLoss).toFixed(2) + "</span>");
+            tmpHTMLArr.push('总计持有: <span class="text-info">' + currCalcObj.stockCount + "</span>支股票");
+            tmpHTMLArr.push('持仓数量: <span class="text-info">' + currCalcObj.totalAmount + "</span>股");
+            tmpHTMLArr.push('持仓市值: <span class="text-info">' + currCalcObj.totalValue.toFixed(2) + "</span>");
+            tmpHTMLArr.push('其中盈利: <span class="text-danger">' + currCalcObj.profitCount + '</span>支');
+            tmpHTMLArr.push('共计:<span class="text-danger">' + currCalcObj.totalProfit.toFixed(2) + "</span>");
+            tmpHTMLArr.push('其中亏损: <span class="text-success">' + currCalcObj.lossCount + '</span>支');
+            tmpHTMLArr.push('共计:<span class="text-success">' + Math.abs(currCalcObj.totalLoss).toFixed(2) + "</span>");
+            tmpHTMLArr.push('总计' + (currCalcObj.totalPL > 0 ? '盈利' : '亏损') + ':<span class="' + (currCalcObj.totalPL > 0 ? 'text-danger' : 'text-success') + '">' + Math.abs(currCalcObj.totalPL).toFixed(2) + "</span>");
             break;
         case 'profit':
-            tmpHTMLArr.push('总计: <span class="text-danger">' + _globalFilterDataList.length + '</span>支股票盈利, 盈利总额:<span class="text-danger">' + (totalProfit + totalLoss).toFixed(2) + "</span>");
+            tmpHTMLArr.push('总计: <span class="text-danger">' + currCalcObj.stockCount + '</span>支股票盈利, 盈利总额:<span class="text-danger">' + currCalcObj.totalPL.toFixed(2) + "</span>");
             break;
         case 'loss':
-            tmpHTMLArr.push('总计: <span class="text-success">' + _globalFilterDataList.length + '</span>支股票亏损, 亏损总额:<span class="text-success">' + Math.abs(totalProfit + totalLoss).toFixed(2)) + "</span>";
+            tmpHTMLArr.push('总计: <span class="text-success">' + currCalcObj.stockCount + '</span>支股票亏损, 亏损总额:<span class="text-success">' + Math.abs(currCalcObj.totalPL).toFixed(2)) + "</span>";
             break;
         case 'all':
         default:
-            tmpHTMLArr.push('总计: <span class="text-info">' + _globalFilterDataList.length + "</span>支股票");
-            tmpHTMLArr.push('总计持有: <span class="text-info">' + positionCount + "</span>支股票");
-            tmpHTMLArr.push('持仓数量: <span class="text-info">' + totalAmount + "</span>股");
-            tmpHTMLArr.push('持仓市值: <span class="text-info">' + totalValue.toFixed(2) + "</span>股");
-            tmpHTMLArr.push('其中盈利: <span class="text-danger">' + profitCount + '</span>支');
-            tmpHTMLArr.push('共计:<span class="text-danger">' + totalProfit.toFixed(2) + "</span>");
-            tmpHTMLArr.push('其中亏损: <span class="text-success">' + lossCount + '</span>支');
-            tmpHTMLArr.push('共计:<span class="text-success">' + Math.abs(totalLoss).toFixed(2) + "</span>");
-            tmpHTMLArr.push('总计' + (totalProfit + totalLoss > 0 ? '盈利' : '亏损') + ':<span class="' + (totalProfit + totalLoss > 0 ? 'text-danger' : 'text-success') + '">' + Math.abs(totalProfit + totalLoss).toFixed(2) + "</span>");
+            tmpHTMLArr.push('总计: <span class="text-info">' + currCalcObj.stockCount + "</span>支股票");
+            tmpHTMLArr.push('总计持有: <span class="text-info">' + currCalcObj.positionCount + "</span>支股票");
+            tmpHTMLArr.push('持仓数量: <span class="text-info">' + currCalcObj.totalAmount + "</span>股");
+            tmpHTMLArr.push('持仓市值: <span class="text-info">' + currCalcObj.totalValue.toFixed(2) + "</span>股");
+            tmpHTMLArr.push('其中盈利: <span class="text-danger">' + currCalcObj.profitCount + '</span>支');
+            tmpHTMLArr.push('共计:<span class="text-danger">' + currCalcObj.totalProfit.toFixed(2) + "</span>");
+            tmpHTMLArr.push('其中亏损: <span class="text-success">' + currCalcObj.lossCount + '</span>支');
+            tmpHTMLArr.push('共计:<span class="text-success">' + Math.abs(currCalcObj.totalLoss).toFixed(2) + "</span>");
+            tmpHTMLArr.push('总计' + (currCalcObj.totalPL > 0 ? '盈利' : '亏损') + ':<span class="' + (currCalcObj.totalPL > 0 ? 'text-danger' : 'text-success') + '">' + Math.abs(currCalcObj.totalPL).toFixed(2) + "</span>");
             break;
     }
 
     $('#footer_Data_View').html(tmpHTMLArr.join(','));
-}
+};
 
 function getFormatedStockId() {
     var stockId = $('#txt_AddStock').val().trim();
@@ -845,11 +917,13 @@ function sortAllStockList(useTmpList) {
     });
 
     _globalFilterDataList = symbolList.concat(positionList, otherList);
-}
+};
 
 function initPage() {
     _loadStockList();
     initEvents();
+    _totalInvestment = parseFloat($(_historyDoc.find('root')[0]).attr('investment'));
+    $('#text_Total_Investmeent').text(_totalInvestment.toFixed(2));
     $('.main-wrap').height($('body').height() - $('header').height() - $('footer').height() - 5);
 };
 
@@ -941,8 +1015,6 @@ function stopRefereshDataTable() {
 function startRefereshDataTable() {
     loadStockData(null, false);
     var currData, currMarket, tmpVal, tmpColor, stockId, currRowId, alertItem, alertObj;
-    var todayTotal = 0;
-    var allTotal = 0;
     try {
         for (var i = 0; i < _globalFilterDataList.length; i++) {
             stockId = _globalFilterDataList[i].id;
@@ -966,15 +1038,13 @@ function startRefereshDataTable() {
             $(currRowId + ' .stock_info_cell_amount').text((currData.amount == 0 ? '-' : currData.amount.toFixed(2)));
             $(currRowId + ' .stock_info_cell_totalValue').text(currData.amount == 0 ? '-' : formatValue(currData.totalCost, true));
             $(currRowId + ' .stock_info_cell_todayPL').text(currData.amount == 0 ? '-' : formatValue(currMarket.rise_fall * currData.amount, true));
-            todayTotal += currData.amount == 0 ? 0 : currMarket.rise_fall * currData.amount;
             tmpVal = currData.amount == 0 ? currData.totalPL : (currMarket.priceTC - currData.costPrice) * currData.amount;
-            allTotal += tmpVal;
             $(currRowId + ' .stock_info_cell_totalPL').text(formatValue(tmpVal, true)).css('color', tmpVal != 0 ? (tmpVal > 0 ? "red" : "green") : "black");
             tmpVal = _globalDataObj.stocks[stockId].advise;
             tmpVal = tmpVal.length == 0 ? { buyScope: '-', stopProfitScope: '-', stopLossScope: '-' } : tmpVal[tmpVal.length - 1];
-            $(currRowId + ' .stock_info_cell_advise_buy').text(_globalDataObj.stocks[stockId].buyScope == '' ? '-' : _globalDataObj.stocks[stockId].buyScope);
-            $(currRowId + ' .stock_info_cell_advise_profit').text(_globalDataObj.stocks[stockId].stopProfitScope == '' ? '-' : _globalDataObj.stocks[stockId].stopProfitScope);
-            $(currRowId + ' .stock_info_cell_advise_loss').text(_globalDataObj.stocks[stockId].stopLossScope == '' ? '-' : _globalDataObj.stocks[stockId].stopLossScope);
+            $(currRowId + ' .stock_info_cell_advise_buy').text(currData.buyScope == '' ? '-' : currData.buyScope);
+            $(currRowId + ' .stock_info_cell_advise_profit').text(currData.stopProfitScope == '' ? '-' : currData.stopProfitScope);
+            $(currRowId + ' .stock_info_cell_advise_loss').text(currData.stopLossScope == '' ? '-' : currData.stopLossScope);
             alertItem = $(currRowId + ' .stock_info_cell_alert .fa-bell');
             alertObj = checkAdviseScope(currData);
             alertItem.attr('title', alertObj.title);
@@ -987,13 +1057,92 @@ function startRefereshDataTable() {
             }
         }
 
-        $('#text_Today_PL_Total').text(todayTotal.toFixed(2)).css('color', todayTotal != 0 ? (todayTotal > 0 ? "red" : "green") : "black");
-        $('#text_All_PL_Total').text(allTotal.toFixed(2)).css('color', allTotal != 0 ? (allTotal > 0 ? "red" : "green") : "black");
+        var calcObj = calcPLAndTVInList(_globalDataObj.list);
+        $('#text_Today_PL_Total').text(calcObj.todayTotal.toFixed(2)).css('color', calcObj.todayTotal != 0 ? (calcObj.todayTotal > 0 ? "red" : "green") : "black");
+        $('#text_All_PL_Total').text(calcObj.totalPL.toFixed(2)).css('color', calcObj.totalPL != 0 ? (calcObj.totalPL > 0 ? "red" : "green") : "black");
     }
     catch (ex) {
         console.log(stockId);
     }
 };
+
+function startRefereshTimeSharing() {
+    var stockId = $('#stockInfoModal').attr('data-stockid');
+    $.ajax({
+        url: _dataURL.timeSharing_plans + stockId + '.js',
+        dataType: "script",
+        cache: "false",
+        type: "GET",
+        context: this,
+        success: function () {
+            redrawTimeSharing();
+        },
+        error: function () { }
+    });
+}
+
+var _globalTotalMinute = 240;
+function redrawTimeSharing() {
+    var constWidth = 1920;
+    var constHeight = 1080;
+    var constTop = 30;
+    var constFootHeight = 150;
+    var constUnitV = 180;
+    var constUnitH = 240;
+
+    var tmpArr = window.min_data.split('\n');
+    var graphData = [];
+    var tmpItemArr, tmpPrice, tmpAmount;
+    var maxPrice = 0, minPrice = 0, maxAmt = 0; minAmt = 0;
+    for (var i = 0; i < tmpArr.length; i++) {
+        tmpItemArr = tmpArr[i].split(' ');
+        if (tmpItemArr.length == 3) {
+            tmpPrice = parseFloat(tmpItemArr[1]);
+            tmpAmount = parseInt(tmpItemArr[2]);
+            maxPrice = Math.max(maxPrice, tmpPrice);
+            minPrice = Math.max(minPrice, tmpPrice);
+            maxAmt = Math.max(maxAmt, tmpAmount);
+            minAmt = Math.max(minAmt, tmpAmount);
+            graphData.push({ time: tmpItemArr[0], price: tmpPrice, amount: tmpAmount });
+        }
+    }
+
+    var stockObj = _globalDataObj.stocks[$('#stockInfoModal').attr('data-stockid')];
+    var priceYC = stockObj.market.priceYC;
+    var priceUnit = ((Math.abs(maxPrice - priceYC) > Math.abs(priceYC - minPrice) ? maxPrice : minPrice) - priceYC) / 3;
+    maxPrice = priceYC + priceUnit * 3;
+    minPrice = priceYC - priceUnit * 3;
+    var maxRate = (maxPrice - priceYC) / priceYC * 100;
+    var minRate = (priceYC - minPrice) / priceYC * 100;
+
+    var canvasBg = $(".canvas-time-sharing.graph-bg")[0];
+    var cxtBg = canvasBg.getContext("2d");
+    cxtBg.lineWidth = 3;
+    cxtBg.strokeStyle = "#acacac";//"#e8e8e8";
+    var tmpX = constUnitH;
+    var tmpY = constTop;
+    for (var i = 0; i < 7; i++) {
+        cxtBg.moveTo(tmpX, tmpY);
+        cxtBg.lineTo(tmpX + constWidth, tmpY);
+        tmpY += constUnitV;
+        cxtBg.stroke();
+    }
+
+    var tmpX = constUnitH * 2;
+    var tmpY = constTop;
+    for (var i = 0; i < 7; i++) {
+        cxtBg.moveTo(tmpX, tmpY);
+        cxtBg.lineTo(tmpX, tmpY + constHeight);
+        tmpX += constUnitH;
+        cxtBg.stroke();
+    }
+
+    cxtBg.font = "45px";
+    cxtBg.textAlign = "end";
+    cxtBg.textBaseline = "top";
+    cxtBg.strokeText("Hello World!", constUnitH, constTop);
+
+}
 
 /*Stock Data Loader*/
 //1. 0: 未知 
@@ -1176,6 +1325,8 @@ StockLoader.record = function (stockId) {
 StockLoader.advise = function (stockId) {
     var advRoot = _historyDoc.find('stock[id="' + stockId + '"] advise');
     var advEls = advRoot.find('i');
+    var currDataObj = _globalDataObj.stocks[stockId];
+    currDataObj.buyScope = currDataObj.stopProfitScope = currDataObj.stopLossScope = '';
     var curradv;
     for (var i = 0; i < advEls.length; i++) {
         curradv = $(advEls[i]);
@@ -1197,20 +1348,12 @@ StockLoader.advise = function (stockId) {
         newAdviseObj.buyScope = formatAdviseScope(newAdviseObj.buyDown, newAdviseObj.buyUp, false);
         newAdviseObj.stopProfitScope = formatAdviseScope(newAdviseObj.stopProfitDown, newAdviseObj.stopProfitUp, true);
         newAdviseObj.stopLossScope = formatAdviseScope(newAdviseObj.stopLossDown, newAdviseObj.stopLossUp, false);
-        _globalDataObj.stocks[stockId].advise.push(newAdviseObj);
-        _globalDataObj.stocks[stockId].fundamentals = $(advRoot.find('fundamentals')[0]).text();
-        _globalDataObj.stocks[stockId].technical = $(advRoot.find('technical')[0]).text();
-        if (newAdviseObj.buyScope != '') {
-            _globalDataObj.stocks[stockId].buyScope = newAdviseObj.buyScope;
-        }
-
-        if (newAdviseObj.stopProfitScope != '') {
-            _globalDataObj.stocks[stockId].stopProfitScope = newAdviseObj.stopProfitScope;
-        }
-
-        if (newAdviseObj.stopLossScope != '') {
-            _globalDataObj.stocks[stockId].stopLossScope = newAdviseObj.stopLossScope;
-        }
+        currDataObj.advise.push(newAdviseObj);
+        currDataObj.fundamentals = $(advRoot.find('fundamentals')[0]).text();
+        currDataObj.technical = $(advRoot.find('technical')[0]).text();
+        currDataObj.buyScope = newAdviseObj.buyScope ? newAdviseObj.buyScope : currDataObj.buyScope;
+        currDataObj.stopProfitScope = newAdviseObj.stopProfitScope ? newAdviseObj.stopProfitScope : currDataObj.stopProfitScope;
+        currDataObj.stopLossScope = newAdviseObj.stopLossScope ? newAdviseObj.stopLossScope : currDataObj.stopLossScope;
     }
 };
 
@@ -1257,7 +1400,7 @@ StockLoader.calcSummaryData = function (stockId) {
         price: (totalAmount == 0 ? 0 : costPrice),
         PL: totalAmount == 0 ? totalSell - totalBuy - totalFee + (stockObj.market.priceTC - costPrice) * totalAmount : ((stockObj.market.priceTC == 0 ? stockObj.market.priceYC : stockObj.market.priceTC) - costPrice) * totalAmount
     }
-}
+};
 
 /*Record Modal*/
 function startRefereshRecordModal(stockId) {
@@ -1346,7 +1489,7 @@ function adjustRecordOptBtnStatus(isEdit, rowIndex) {
         $('#recordModal .record-item-list-tbody .btn-record-item-edit-cancel').hide();
         $('#recordModal .record-item-list-tbody .btn-record-item-edit-ok').hide();
     }
-}
+};
 
 function stopEditRecordItem() {
     adjustRecordOptBtnStatus(false);
@@ -1407,7 +1550,7 @@ function startEditRecordItem(arg) {
         $(cells[i]).text("").append($(tmpMapItem.id).show());
         $(tmpMapItem.id).val(tmpMapItem.convert(currRec[tmpMapItem.key]));
     }
-}
+};
 
 function cancelEditRecordItem() {
     var tmpStr = $(arguments[0].currentTarget).attr("data-target");
@@ -1598,7 +1741,7 @@ function adjustAdviseOptBtnStatus(isEdit, rowIndex) {
         $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-cancel').hide();
         $('#adviseModal .advise-item-list-tbody .btn-advise-item-edit-ok').hide();
     }
-}
+};
 
 function stopEditAdviseItem() {
     adjustAdviseOptBtnStatus(false);
@@ -1687,7 +1830,7 @@ function startEditAdviseItem(arg) {
             $(tmpMapItem.id).val(tmpMapItem.convert == null ? currAdv[tmpMapItem.key] : tmpMapItem.convert(currAdv[tmpMapItem.key]));
         }
     }
-}
+};
 
 function cancelEditAdviseItem() {
     var tmpStr = $(arguments[0].currentTarget).attr("data-target");
@@ -1809,7 +1952,7 @@ function writeXMLString() {
     var existList = [];
     var existFlag = false;
     var xmlStrArr = [];
-    xmlStrArr.push('<root>');
+    xmlStrArr.push('<root investment="' + $(_historyDoc.find('root')[0]).attr('investment') + '">');
     for (var i = 0; i < _globalDataObj.list.length; i++) {
         existFlag = false;
         for (var j0; j < existList.length; j++) {
@@ -1819,7 +1962,7 @@ function writeXMLString() {
             }
         }
 
-        xmlStrArr.push('<stock id="' + _globalDataObj.list[i].id + '" symbol="' + _globalDataObj.list[i].symbol + '">');
+        xmlStrArr.push('<stock id="' + _globalDataObj.list[i].id + '" symbol="' + _globalDataObj.list[i].symbol + '" focus="' + (_globalDataObj.list[i].focus ? '1' : '0') + '">');
         xmlStrArr.push('<recs>');
         if (!existFlag) {
             var recs = _globalDataObj.stocks[_globalDataObj.list[i].id].records;
@@ -1952,3 +2095,23 @@ function formatAdviseScope(down, up, isProfit) {
 
     return retVal;
 };
+
+function stopAllInterval() {
+    var date = new Date(Date.now());
+    var hour = date.getHours;
+    var minute = date.getMinutes;
+    if (hour < 9 || (hour == 9 && minute < 15) || hour > 15 || (hour == 15 && minute > 1)) {
+        window.clearInterval(_intervalForRefMainTB);
+        window.clearInterval(_intervalForRefStockInfo);
+        window.clearInterval(_intervalForRefTimeSharingPlans);
+        window.clearInterval(_intervalForRefRecordModal);
+        window.clearInterval(_intervalForRefAdviseModal);
+    }
+};
+
+window.onbeforeunload = function () {
+    saveData();
+    return '';
+};
+
+window.setTimeout('stopAllInterval()', 10 * 60 * 1000);

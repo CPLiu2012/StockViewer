@@ -29,18 +29,24 @@
     </header>
     <div class="container-fluid main-wrap" style="padding-top: 5px;">
         <div class="row">
-            <div class="col-6">
+            <div class="col-4">
                 <button type="button" class="btn btn-sm btn-outline-primary" id="btn_View_All">全部参与</button>
                 <button type="button" class="btn btn-sm btn-primary" id="btn_View_Focus">重点关注</button>
                 <button type="button" class="btn btn-sm btn-warning" id="btn_View_Position">当前持有</button>
                 <button type="button" class="btn btn-sm btn-success" id="btn_View_Loss">过往亏损</button>
                 <button type="button" class="btn btn-sm btn-danger" id="btn_View_Profit">过往盈利</button>
             </div>
-            <div class="col-3">
+            <div class="col-2">
                 <div class="header-PL-text">当日盈亏:<span id="text_Today_PL_Total"></span></div>
             </div>
-            <div class="col-3">
+            <div class="col-2">
                 <div class="header-PL-text">总盈亏:<span id="text_All_PL_Total"></span></div>
+            </div>
+            <div class="col-2">
+                <div class="header-PL-text">总投入:<span class="text-muted font-weight-light" id="text_Total_Investmeent"></span></div>
+            </div>
+            <div class="col-2">
+                <div class="header-PL-text">剩余资金:<span class="text-info font-weight-light" id="text_Available"></span></div>
             </div>
         </div>
         <div class="row">
@@ -286,7 +292,7 @@
                                                                 <a class="nav-link" data-toggle="tab" href="#tab_KLine_Monthly" role="tab" aria-controls="tab_KLine_Monthly">月K</a>
                                                             </li>
                                                             <li class="nav-item">
-                                                                <a class="nav-link" data-toggle="tab" href="#tab_Canvas" role="tab" aria-controls="tab_Canvas">月K</a>
+                                                                <a class="nav-link" data-toggle="tab" href="#tab_Canvas" role="tab" aria-controls="tab_Canvas">分时手绘</a>
                                                             </li>
                                                         </ul>
                                                         <div class="tab-content" style="width:545px; height:300px;">
@@ -303,7 +309,9 @@
                                                                 <img class="img-fluid" src="http://image.sinajs.cn/newchart/monthly/n/" id="img_Stock_Info_K_Line_Monthly" />
                                                             </div>
                                                             <div class="tab-pane" id="tab_Canvas" role="tabpanel">
-                                                                <canvas id="canvas_Time_Sharing" width="545" height="300" style="width:545px; height:300px;"></canvas>
+                                                                <canvas class="canvas-time-sharing graph-bg" width="2400" height="1260" style="width:570px; height:300px;"></canvas>
+                                                                <canvas class="canvas-time-sharing graph-line" width="2400" height="1260" style="width:570px; height:300px;"></canvas>
+                                                                <canvas class="canvas-time-sharing graph-hover" width="2400" height="1260" style="width:570px; height:300px;"></canvas>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -343,7 +351,7 @@
                                                             <td class="text-right position-s-1-p"></td>
                                                             <td class="text-right position-s-1-a" colspan="2"></td>
                                                         </tr>
-                                                        <tr>
+                                                        <tr class="font-weight-bold">
                                                             <td class="text-left">成交</td>
                                                             <td class="text-right position-deal-p"></td>
                                                             <td colspan="2"></td>
