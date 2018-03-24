@@ -5,6 +5,26 @@
 };
 var _globalFilterDataList = [];
 var _globalFilterOutList = [];
+var _TSGConst = {
+    width: 2400,
+    height: 1260,
+    top: 30,
+    bottom: 150,
+    unitV: 180,
+    unitH: 240,
+    timeAmt: 240
+};
+
+var _TSGTransConst = {
+    width: 2400,
+    height: 1260,
+    top: 30,
+    bottom: 150,
+    unitV: 180,
+    unitH: 240,
+    timeAmt: 240
+};
+
 var _historyDoc = null;
 var _totalInvestment = 0;
 /*URL For Get Data*/
@@ -704,7 +724,22 @@ function initEvents() {
     });
 
     $('a[href="#tab_Canvas"][aria-controls=tab_Canvas]').on('show.bs.tab', function (e) {
-        _intervalForRefTimeSharingCanvas = window.setInterval('startRefereshTimeSharing()', _intervalForRefTimeSharingCanvas_Time);
+        var stockId = $('#stockInfoModal').attr('data-stockid');
+        $.ajax({
+            url: _dataURL.timeSharing_plans + stockId + '.js',
+            dataType: "script",
+            cache: "false",
+            type: "GET",
+            context: this,
+            success: function () {
+                var calcObj = calcPriceUnit($('#stockInfoModal').attr('data-stockid'));
+                drawCoordinate();
+                adjustCoordinateTable(calcObj);
+            },
+            error: function () { }
+        });
+        //startRefereshTimeSharing();
+        //_intervalForRefTimeSharingCanvas = window.setInterval('startRefereshTimeSharing()', _intervalForRefTimeSharingCanvas_Time);
     });
 };
 
@@ -1081,15 +1116,7 @@ function startRefereshTimeSharing() {
     });
 }
 
-var _globalTotalMinute = 240;
-function redrawTimeSharing() {
-    var constWidth = 1920;
-    var constHeight = 1080;
-    var constTop = 30;
-    var constFootHeight = 150;
-    var constUnitV = 180;
-    var constUnitH = 240;
-
+function calcPriceUnit(stockId) {
     var tmpArr = window.min_data.split('\n');
     var graphData = [];
     var tmpItemArr, tmpPrice, tmpAmount;
@@ -1107,41 +1134,64 @@ function redrawTimeSharing() {
         }
     }
 
-    var stockObj = _globalDataObj.stocks[$('#stockInfoModal').attr('data-stockid')];
+    var stockObj = _globalDataObj.stocks[stockId];
     var priceYC = stockObj.market.priceYC;
     var priceUnit = ((Math.abs(maxPrice - priceYC) > Math.abs(priceYC - minPrice) ? maxPrice : minPrice) - priceYC) / 3;
     maxPrice = priceYC + priceUnit * 3;
     minPrice = priceYC - priceUnit * 3;
     var maxRate = (maxPrice - priceYC) / priceYC * 100;
     var minRate = (priceYC - minPrice) / priceYC * 100;
+    return { minP: minPrice, maxP: maxPrice, minR: minRate, maxR: maxRate, unitP: priceUnit };
+};
 
+function drawCoordinate() {
     var canvasBg = $(".canvas-time-sharing.graph-bg")[0];
     var cxtBg = canvasBg.getContext("2d");
     cxtBg.lineWidth = 3;
     cxtBg.strokeStyle = "#acacac";//"#e8e8e8";
-    var tmpX = constUnitH;
-    var tmpY = constTop;
+    var tmpX = _TSGConst.unitH;
+    var tmpY = _TSGConst.top;
     for (var i = 0; i < 7; i++) {
         cxtBg.moveTo(tmpX, tmpY);
-        cxtBg.lineTo(tmpX + constWidth, tmpY);
-        tmpY += constUnitV;
+        cxtBg.lineTo(tmpX + _TSGConst.width - _TSGConst.unitH * 2, tmpY);
+        tmpY += _TSGConst.unitV;
         cxtBg.stroke();
     }
 
-    var tmpX = constUnitH * 2;
-    var tmpY = constTop;
+    var tmpX = _TSGConst.unitH * 2;
+    var tmpY = _TSGConst.top;
     for (var i = 0; i < 7; i++) {
         cxtBg.moveTo(tmpX, tmpY);
-        cxtBg.lineTo(tmpX, tmpY + constHeight);
-        tmpX += constUnitH;
+        cxtBg.lineTo(tmpX, tmpY + _TSGConst.height - _TSGConst.bottom);
+        tmpX += _TSGConst.unitH;
         cxtBg.stroke();
     }
 
-    cxtBg.font = "45px";
-    cxtBg.textAlign = "end";
-    cxtBg.textBaseline = "top";
-    cxtBg.strokeText("Hello World!", constUnitH, constTop);
+    canvasBg = $(canvasBg);
+    _TSGTransConst.width = canvasBg.width();
+    _TSGTransConst.height = canvasBg.height();
+    _TSGTransConst.top = _TSGConst.top / _TSGConst.height * _TSGTransConst.height;
+    _TSGTransConst.bottom = _TSGConst.bottom / _TSGConst.height * _TSGTransConst.height;
+    _TSGTransConst.unitV = _TSGConst.unitV / _TSGConst.height * _TSGTransConst.height;
+    _TSGTransConst.unitH = _TSGConst.unitH / _TSGConst.width * _TSGTransConst.width;
+    _TSGTransConst.timeAmt = 240;
+};
 
+function adjustCoordinateTable(calcObj) {
+    var table = $('#TSG_Coord_Table');
+    table.width(_TSGTransConst.width);
+    table.height(_TSGTransConst.height);
+    $('#TSG_Coord_Table tbody tr:first td').height(_TSGTransConst.top + _TSGTransConst.unitV);
+    for (var i = 1; i < 5; i++) {
+        $('#TSG_Coord_Table tbody tr:eq(' + i + ') td').height(_TSGTransConst.unitV);
+    }
+
+    $('#TSG_Coord_Table tbody tr:last td').height(_TSGTransConst.bottom + _TSGTransConst.unitV);
+};
+
+var _globalTotalMinute = 240;
+function redrawTimeSharing() {
+    var calcObj = calcPriceUnit($('#stockInfoModal').attr('data-stockid'));
 }
 
 /*Stock Data Loader*/
