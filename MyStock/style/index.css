@@ -293,8 +293,86 @@
         padding: 0px 5px;
     }
 
-.canvas-time-sharing {
-    position:absolute;
-    top:36px;
-    left:0px;
+.TSG-wrap-container {
+    position: relative;
+    width: 1140px;
+    height: 600px;
 }
+
+.TSG-canvas-wrap {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    background-color: rgba(0,0,0,0.1);
+}
+
+#TSG_Wrap_Table {
+    margin: 0px;
+}
+
+    #TSG_Wrap_Table td {
+        padding: 0px;
+    }
+
+    #TSG_Wrap_Table .canvas-time-sharing {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+
+    #TSG_Wrap_Table .coord-label-TSG {
+        position: absolute;
+        font-size: 13px;
+        line-height: 20px;
+    }
+
+        #TSG_Wrap_Table .coord-label-TSG.price-label {
+            right: 2px;
+        }
+
+        #TSG_Wrap_Table .coord-label-TSG.rate-label {
+            left: 2px;
+        }
+
+    #TSG_Wrap_Table .TSG-coord-label-wrap {
+        position: relative;
+        top: 0px;
+        left: 0px;
+    }
+
+#TSG_Coord_Table {
+    margin: 0px;
+}
+
+    #TSG_Coord_Table .coord-cell {
+        padding: 0px;
+        border: none;
+        border-top: 1px solid rgba(221,221,221,1);
+        border-right: 1px solid rgba(221,221,221,1);
+    }
+
+
+    #TSG_Coord_Table .coord-last-row .coord-cell {
+        border-bottom: 2px solid rgba(221,221,221,1);
+        border-right: 1px solid rgba(221,221,221,1);
+    }
+
+        #TSG_Coord_Table .coord-last-row .coord-cell.coord-end-cell {
+            border-right: none;
+        }
+
+    #TSG_Coord_Table .coord-end-cell {
+        border-right: none;
+    }
+
+    #TSG_Coord_Table .coord-first-row .coord-cell {
+        border-top: 2px solid rgba(221,221,221,1);
+    }
+
+    #TSG_Coord_Table .coord-first-row .coord-cell {
+        border-top: 2px solid rgba(221,221,221,1);
+    }
+
+    #TSG_Coord_Table .coord-middle-row .coord-cell {
+       border-top-style:dashed;
+    }

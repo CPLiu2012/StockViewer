@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html style="height:100%">
+<head>
+    <title>My Stock</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <link href="image/logotop.ico" rel="shortcut icon" type="image/x-icon" />
+    <link rel="stylesheet" href="style/tether.min.css">
+    <link rel="stylesheet" href="style/bootstrap.css">
+    <!--<link rel="stylesheet" href="style/font-awesome.min.css">-->
+    <script src="javascript/common/fontawesome-all.min.js"></script>
+    <script src="javascript/common/jquery-3.3.1.min.js"></script>
+    <script src="javascript/common/tether.min.js"></script>
+    <script src="javascript/common/bootstrap.js"></script>
+    <script src="javascript/common/common.js"></script>
+    <script src="javascript/test.js"></script>
+    <link rel="stylesheet" href="style/index.css">
+    <style>
+        .wrap-container {
+            width: 1140px;
+            height: 600px;
+            background-color: antiquewhite;
+        }
+    </style>
+</head>
+<body style="height:100%">
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <div class="TSG-wrap-container">
+                    <div class="TSG-canvas-wrap">
+                        <canvas class="canvas-time-sharing graph-bg" width="2400" height="1260"></canvas>
+                        <canvas class="canvas-time-sharing graph-line" width="2400" height="1260"></canvas>
+                        <canvas class="canvas-time-sharing graph-hover" width="2400" height="1260"></canvas>
+                    </div>
+                    <table class="table table-sm w-100 h-100" id="TSG_Wrap_Table" style="border: 1px solid black;">
+                        <tbody>
+                            <tr>
+                                <td class="TSG-wrap-top-cell" colspan="3"></td>
+                            </tr>
+                            <tr>
+                                <td class="TSG-coord-label-cell-price">
+                                    <div class="TSG-coord-label-wrap h-100 w-100">
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                        <div class="coord-label-TSG price-label"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <table class="table table-sm w-100 h-100" id="TSG_Coord_Table">
+                                        <tbody></tbody>
+                                    </table>
+                                </td>
+                                <td class="TSG-coord-label-cell-rate">
+                                    <div class="TSG-coord-label-wrap h-100 w-100">
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                        <div class="coord-label-TSG rate-label"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="TSG-wrap-bottom-cell" colspan="3">
+                                    <div class="TSG-coord-label-wrap time-label-wrap">
+                                        <div class="coord-label-TSG time-label"></div>
+                                        <div class="coord-label-TSG time-label"></div>
+                                        <div class="coord-label-TSG time-label"></div>
+                                        <div class="coord-label-TSG time-label"></div>
+                                        <div class="coord-label-TSG time-label"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $.ajax({
+                url: _dataURL.timeSharing_plans,
+                dataType: "script",
+                cache: "false",
+                type: "GET",
+                context: this,
+                success: function () {
+                    calcPriceUnit('sz002419');
+                    buildTSGCoordTable();
+                    adjustCoordSize();
+
+                    //drawCoordinate();
+                },
+                error: function () { }
+            });
+        });
+    </script>
+</body>
+</html>
