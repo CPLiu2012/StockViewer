@@ -30,9 +30,45 @@
             <div class="col">
                 <div class="TSG-wrap-container">
                     <div class="TSG-canvas-wrap">
-                        <canvas class="canvas-time-sharing graph-bg" width="2400" height="1260"></canvas>
                         <canvas class="canvas-time-sharing graph-line" width="2400" height="1260"></canvas>
                         <canvas class="canvas-time-sharing graph-hover" width="2400" height="1260"></canvas>
+                        <div class="coord-label-TSG hover-price-label"></div>
+                        <div class="coord-label-TSG hover-rate-label"></div>
+                        <div class="coord-label-TSG hover-time-label"></div>
+                        <div class="coord-label-TSG hover-detail-label">
+                            <div class="container-fluid no-wrap ">
+                                <div class="row no-wrap ">
+                                    <div class="col no-wrap ">
+                                        <table class="table table-sm w-100 h-100 text-center TSG-hover-detail-table font-weight-bold">
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="2"><span class="TSG-hover-detail-label-name">天111虹股份</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="2" class="font-weight-light"><span class="TSG-hover-detail-label-date">21213213018/03/27/二14:46</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span>价格</span></td>
+                                                    <td class="text-right"><span class="numeric-span TSG-hover-detail-label-price">203242.41</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span>均价</span></td>
+                                                    <td class="text-right"><span class="numeric-span TSG-hover-detail-label-average" style="color: rgb(241, 18, 0);">20234.68</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span>涨跌</span></td>
+                                                    <td class="text-right"><span class="numeric-span TSG-hover-detail-label-rate">0.12343(0.64234%)</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><span>成交</span></td>
+                                                    <td class="text-right"><span class="numeric-span TSG-hover-detail-label-amount">99.23400</span><span>手</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <table class="table table-sm w-100 h-100" id="TSG_Wrap_Table" style="border: 1px solid black;">
                         <tbody>
@@ -87,21 +123,11 @@
     </div>
     <script type="text/javascript">
         $(document).ready(function () {
-            $.ajax({
-                url: _dataURL.timeSharing_plans,
-                dataType: "script",
-                cache: "false",
-                type: "GET",
-                context: this,
-                success: function () {
-                    calcPriceUnit('sz002419');
-                    buildTSGCoordTable();
-                    adjustCoordSize();
-
-                    //drawCoordinate();
-                },
-                error: function () { }
-            });
+            initEvent();
+            var _intervalForRefTimeSharingCanvas_Time = 2000;
+            buildTSGCoordTable();
+            adjustCoordSize();
+            _intervalForRefTimeSharingCanvas = window.setInterval('startRefereshTimeSharing()', _intervalForRefTimeSharingCanvas_Time);
         });
     </script>
 </body>

@@ -3,6 +3,11 @@
     font-size: 12px;
 }
 
+.no-wrap{
+    padding:0px;
+    margin:0px;
+}
+
 .header-PL-text {
     font-size: 16px;
     font-weight: bold;
@@ -306,18 +311,60 @@
     background-color: rgba(0,0,0,0.1);
 }
 
+
+    .TSG-canvas-wrap .canvas-time-sharing {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+
+        .TSG-canvas-wrap .canvas-time-sharing.graph-line {
+            z-index: 10;
+        }
+
+
+        .TSG-canvas-wrap .canvas-time-sharing.graph-hover {
+            z-index: 100;
+        }
+
+    .TSG-canvas-wrap .coord-label-TSG {
+        position: absolute;
+        background-color: rgba(0,0,0,0.6);
+        color: rgb(255,255,255);
+        z-index: 100;
+        width: 40px;
+        padding: 2px 5px;
+    }
+
+        .TSG-canvas-wrap .coord-label-TSG.hover-time-label {
+            width: 140px;
+            text-align: center;
+        }
+
+        .TSG-canvas-wrap .coord-label-TSG.hover-detail-label {
+            background-color: rgba(255,255,255,0.8);
+            color: rgb(0,0,0);
+            border: 1px solid rgb(0,0,0);
+            border-radius: 5px;
+            width: 180px;
+            height: 180px;
+            top:5px;
+        }
+
+        .TSG-canvas-wrap .TSG-hover-detail-table td{
+            font-size:14px;
+        }
+
+        .TSG-canvas-wrap .TSG-hover-detail-table td span.numeric-span{
+            font-weight:normal;
+        }
+
 #TSG_Wrap_Table {
     margin: 0px;
 }
 
     #TSG_Wrap_Table td {
         padding: 0px;
-    }
-
-    #TSG_Wrap_Table .canvas-time-sharing {
-        position: absolute;
-        top: 0px;
-        left: 0px;
     }
 
     #TSG_Wrap_Table .coord-label-TSG {
@@ -374,5 +421,5 @@
     }
 
     #TSG_Coord_Table .coord-middle-row .coord-cell {
-       border-top-style:dashed;
+        border-top-style: dashed;
     }

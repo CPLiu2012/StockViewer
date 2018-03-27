@@ -8,7 +8,9 @@
     timeAmt: 240
 };
 
-var _globalDataObj = { stocks: { sz002419: { market: { priceYC: 19.97 } } } };
+var _currCalcResult = { min: 0, max: 0, unit: 0, priceYC: 0, datas: [], date: '', name: '' };
+
+var _globalDataObj = { stocks: { sz002419: { market: { name: '天虹股份', priceYC: 20.28 } } } };
 /*URL For Get Data*/
 var _dataURL = {
     //当前信息, 返回v_sz000858=""
@@ -35,8 +37,96 @@ var _dataURL = {
     position_analysis: "http://stock.gtimg.cn/data/index.php?appn=detail&action=data&c=sh600519&p=2"
 };
 
+function initEvent() {
+    $(".canvas-time-sharing.graph-hover").on('mouseenter', function () {
+        $(".canvas-time-sharing.graph-hover").on('mousemove', refereshHoverLabel);
+    });
+
+    $(".canvas-time-sharing.graph-hover").on('mouseleave', function () {
+        $(".canvas-time-sharing.graph-hover").unbind('mousemove');
+    });
+};
+
+function refereshHoverLabel(eventObj) {
+    var canvas = $(".canvas-time-sharing.graph-hover");
+    var tmpY = _TSGConst.height / canvas.height() * eventObj.offsetY;
+    var tmpX = _TSGConst.width / canvas.width() * eventObj.offsetX;
+    var ctx = canvas[0].getContext("2d");
+    canvas.attr('height', _TSGConst.height);
+    ctx.lineWidth = 3;
+    ctx.setLineDash([25, 5]);
+    ctx.strokeStyle = "#000000";//"#e8e8e8";    
+    ctx.moveTo(0, tmpY);
+    ctx.lineTo(_TSGConst.width, tmpY);
+    ctx.moveTo(tmpX, 0);
+    ctx.lineTo(tmpX, _TSGConst.height);
+    ctx.stroke();
+
+    var tmpDateTime, tmpIdx, tmpData, tmpAvg, tmpRate, tmpColor;
+    var tmpValue = (_currCalcResult.max - _currCalcResult.min) / _TSGConst.height;
+    tmpValue = _currCalcResult.max - tmpValue * (tmpY);
+    var tmpLabel = $('.TSG-canvas-wrap .coord-label-TSG.hover-price-label');
+    tmpLabel.text(tmpValue.toFixed(2));
+    tmpLabel.css('top', (eventObj.offsetY - 8) + 'px');
+    tmpLabel.css('left', '-50px');
+
+    tmpValue = (tmpValue - _currCalcResult.priceYC) / _currCalcResult.priceYC * 100;
+    var tmpLabel = $('.TSG-canvas-wrap .coord-label-TSG.hover-rate-label');
+    tmpLabel.text(tmpValue.toFixed(2) + '%');
+    tmpLabel.css('top', (eventObj.offsetY - 8) + 'px');
+    tmpLabel.css('left', (canvas.width() + 10) + 'px');
+
+    var tmpLabel = $('.TSG-canvas-wrap .coord-label-TSG.hover-time-label');
+    tmpDateTime = formatHoverTimeLabelText(tmpX);
+    tmpLabel.text(tmpDateTime);
+    tmpLabel.css('top', canvas.height() + 'px');
+    tmpLabel.css('left', (eventObj.offsetX - 70) + 'px');
+
+    var tmpLabel = $('.TSG-canvas-wrap .coord-label-TSG.hover-detail-label');
+    tmpLabel.css('left', tmpX < _TSGConst.width / 2 ? '5px' : ((canvas.width() - tmpLabel.width() - 15) + 'px'));
+
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-name').text(_currCalcResult.name);
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-date').text(tmpDateTime);
+    tmpIdx = Math.ceil(_TSGConst.timeAmt / _TSGConst.width * tmpX);
+    tmpData = _currCalcResult.datas[tmpIdx];
+    tmpColor = tmpData.price == _currCalcResult.priceYC ? 'rgb(0,0,0)' : tmpData.price > _currCalcResult.priceYC ? 'rgb(241,18,0)' : 'rgb(0,168,0)';
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-price').text(tmpData.price.toFixed(2)).css('color', tmpColor);
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-amount').text((tmpData.amount / 100).toFixed(2));
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-average').text(tmpData.avg.toFixed(2));
+    tmpValue = tmpData.price - _currCalcResult.priceYC;
+    tmpRate = tmpValue / _currCalcResult.priceYC * 100;
+    $('.TSG-hover-detail-table  .TSG-hover-detail-label-rate').text(tmpValue.toFixed(2) + ' (' + tmpRate.toFixed(2) + '%)').css('color', tmpColor);
+};
+
+function formatHoverTimeLabelText(offsetX) {
+    var tmpValue = Math.ceil(_TSGConst.timeAmt / _TSGConst.width * offsetX);
+    tmpValue = tmpValue < 120 ? 60 * 9 + 30 + tmpValue : 60 * 13 + tmpValue - 120;
+    tmpValue = PrefixInteger(Math.floor(tmpValue / 60), 2) + ':' + PrefixInteger(tmpValue % 60, 2);
+    var tmpDate = new Date('20' + _currCalcResult.date.substr(0, 2) + '-' + _currCalcResult.date.substr(2, 2) + '-' + _currCalcResult.date.substr(4));
+    var tmpDay = '';
+    switch (tmpDate.getDay()) {
+        case 1:
+            tmpDay = ' 一 ';
+            break;
+        case 2:
+            tmpDay = ' 二 ';
+            break;
+        case 3:
+            tmpDay = ' 三 ';
+            break;
+        case 4:
+            tmpDay = ' 四 ';
+            break;
+        case 5:
+            tmpDay = ' 五 ';
+            break;
+    }
+
+    return tmpDate.toLocaleDateString() + tmpDay + tmpValue;
+}
+
 function startRefereshTimeSharing() {
-    var stockId = $('#stockInfoModal').attr('data-stockid');
+    //var stockId = $('#stockInfoModal').attr('data-stockid');
     $.ajax({
         url: _dataURL.timeSharing_plans,
         dataType: "script",
@@ -44,7 +134,9 @@ function startRefereshTimeSharing() {
         type: "GET",
         context: this,
         success: function () {
-            redrawTimeSharing();
+            var calcObj = calcPriceUnit('sz002419');
+            refereshCoordLabel(calcObj);
+            redrawTimeSharing(calcObj);
         },
         error: function () { }
     });
@@ -54,52 +146,28 @@ function calcPriceUnit(stockId) {
     var tmpArr = window.min_data.split('\n');
     var graphData = [];
     var tmpItemArr, tmpPrice, tmpAmount;
-    var maxPrice = 0, minPrice = 0, maxAmt = 0; minAmt = 0;
-    for (var i = 0; i < tmpArr.length; i++) {
-        tmpItemArr = tmpArr[i].split(' ');
-        if (tmpItemArr.length == 3) {
+    var totalAmt = _currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].totalAmt;
+    var tmpAvg = _currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].avg;
+    var totalVal = tmpAvg * totalAmt;
+    for (var i = 2 + _currCalcResult.datas.length; i < tmpArr.length; i++) {
+        if (tmpArr[i] != '') {
+            tmpItemArr = tmpArr[i].split(' ');
             tmpPrice = parseFloat(tmpItemArr[1]);
             tmpAmount = parseInt(tmpItemArr[2]);
-            maxPrice = Math.max(maxPrice, tmpPrice);
-            minPrice = Math.max(minPrice, tmpPrice);
-            maxAmt = Math.max(maxAmt, tmpAmount);
-            minAmt = Math.max(minAmt, tmpAmount);
-            graphData.push({ time: tmpItemArr[0], price: tmpPrice, amount: tmpAmount });
+            totalVal += tmpPrice * tmpAmount;
+            totalAmt += tmpAmount;
+            tmpAvg = totalVal / totalAmt;
+            _currCalcResult.max = Math.max(_currCalcResult.max, tmpPrice);
+            _currCalcResult.min = Math.max(_currCalcResult.min, tmpPrice);
+            _currCalcResult.datas.push({ time: tmpItemArr[0], price: tmpPrice, amount: tmpAmount, totalAmt: totalAmt, avg: tmpAvg });
         }
     }
-
-    var stockObj = _globalDataObj.stocks[stockId];
-    var priceYC = stockObj.market.priceYC;
-    var priceUnit = ((Math.abs(maxPrice - priceYC) > Math.abs(priceYC - minPrice) ? maxPrice : minPrice) - priceYC) / 3;
-    maxPrice = priceYC + priceUnit * 3;
-    minPrice = priceYC - priceUnit * 3;
-    var maxRate = (maxPrice - priceYC) / priceYC * 100;
-    var minRate = (priceYC - minPrice) / priceYC * 100;
-    return { minP: minPrice, maxP: maxPrice, minR: minRate, maxR: maxRate, unitP: priceUnit };
-};
-
-function drawCoordinate() {
-    var canvasBg = $(".canvas-time-sharing.graph-bg")[0];
-    var cxtBg = canvasBg.getContext("2d");
-    cxtBg.lineWidth = 3;
-    cxtBg.strokeStyle = "#acacac";//"#e8e8e8";
-    var tmpX = 0;
-    var tmpY = 0;
-    for (var i = 0; i < 7; i++) {
-        cxtBg.moveTo(tmpX, tmpY);
-        cxtBg.lineTo(tmpX + _TSGConst.width, tmpY);
-        tmpY += _TSGConst.unitV;
-        cxtBg.stroke();
-    }
-
-    var tmpX = _TSGConst.unitH;
-    var tmpY = 0;
-    for (var i = 0; i < 7; i++) {
-        cxtBg.moveTo(tmpX, tmpY);
-        cxtBg.lineTo(tmpX, tmpY + _TSGConst.height);
-        tmpX += _TSGConst.unitH;
-        cxtBg.stroke();
-    }
+    _currCalcResult.date = _currCalcResult.date == '' ? tmpArr[1].split(':')[1] : _currCalcResult.date;
+    _currCalcResult.priceYC = _currCalcResult.priceYC == 0 ? _globalDataObj.stocks[stockId].market.priceYC : _currCalcResult.priceYC;
+    _currCalcResult.name = _currCalcResult.name == '' ? _globalDataObj.stocks[stockId].market.name : _currCalcResult.name;
+    var priceUnit = Math.abs((Math.abs(_currCalcResult.max - _currCalcResult.priceYC) > Math.abs(_currCalcResult.priceYC - _currCalcResult.min) ? _currCalcResult.max : _currCalcResult.min) - _currCalcResult.priceYC) / 3;
+    _currCalcResult.max = _currCalcResult.priceYC + priceUnit * 3;
+    _currCalcResult.min = _currCalcResult.priceYC - priceUnit * 3;
 };
 
 function adjustCoordSize() {
@@ -139,12 +207,17 @@ function adjustCoordSize() {
 
     table = $('#TSG_Coord_Table');
     var canvasWrap = $('.TSG-canvas-wrap');
-    canvasWrap.width(table.width());
-    canvasWrap.height(table.height());
+    var width = table.width();
+    var height = table.height()
+    canvasWrap.width(width);
+    canvasWrap.height(height);
     canvasWrap.css('top', unitH + 'px');
     canvasWrap.css('left', unitW + 'px');
+    $(".canvas-time-sharing.graph-line").width(width);
+    $(".canvas-time-sharing.graph-line").height(height);
+    $(".canvas-time-sharing.graph-hover").width(width);
+    $(".canvas-time-sharing.graph-hover").height(height);
 };
-
 
 function buildTSGCoordTable() {
     var tbody = $('#TSG_Coord_Table tbody');
@@ -162,7 +235,51 @@ function buildTSGCoordTable() {
     $('#TSG_Coord_Table .coord-cell').height($('#TSG_Coord_Table').height() / 6);
 };
 
-var _globalTotalMinute = 240;
+function refereshCoordLabel() {
+    var priceLabels = $('#TSG_Wrap_Table .TSG-coord-label-wrap .coord-label-TSG.price-label');
+    var rateLabels = $('#TSG_Wrap_Table .TSG-coord-label-wrap .coord-label-TSG.rate-label');
+    var tmpValue;
+    for (var i = 0; i < 7; i++) {
+        tmpValue = _currCalcResult.max - _currCalcResult.unit * i;
+        $(priceLabels[i]).text(tmpValue.toFixed(2));
+        tmpValue = (tmpValue - _currCalcResult.priceYC) / _currCalcResult.priceYC * 100;
+        $(rateLabels[i]).text(tmpValue.toFixed(2) + '%');
+    }
+};
+
 function redrawTimeSharing() {
-    var calcObj = calcPriceUnit($('#stockInfoModal').attr('data-stockid'));
+    var unitH = Math.ceil(_TSGConst.height / ((_currCalcResult.max - _currCalcResult.min) * 100));
+    var unitW = Math.ceil(_TSGConst.width / _TSGConst.timeAmt);
+    var canvas = $(".canvas-time-sharing.graph-line");
+    var ctx = canvas[0].getContext("2d");
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.strokeStyle = "#3798d4";
+    var tmpX = 0;
+    var tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[0].price - _currCalcResult.min) * 100) * unitH;
+    ctx.moveTo(tmpX, tmpY);
+    for (var i = 0; i < _currCalcResult.datas.length; i++) {
+        tmpX = unitW * i;
+        tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[i].price - _currCalcResult.min) * 100) * unitH;
+        ctx.lineTo(tmpX, tmpY);
+    }
+
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = '#2d2d2d';//'#f11200','##00a800';
+    var tmpX = 0;
+    var tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[0].avg - _currCalcResult.min) * 100) * unitH;
+    ctx.moveTo(tmpX, tmpY);
+    for (var i = 0; i < _currCalcResult.datas.length; i++) {
+        tmpX = unitW * i;
+        tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[i].avg - _currCalcResult.min) * 100) * unitH;
+        ctx.lineTo(tmpX, tmpY);
+    }
+
+    ctx.stroke();
+};
+
+function PrefixInteger(num, length) {
+    return (Array(length).join('0') + num).slice(-length);
 }
