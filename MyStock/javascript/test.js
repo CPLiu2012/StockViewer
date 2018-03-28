@@ -8,9 +8,9 @@
     timeAmt: 240
 };
 
-var _currCalcResult = { min: 0, max: 0, unit: 0, priceYC: 0, datas: [], date: '', name: '' };
+var _currCalcResult = { min: 0, max: 0, maxAmt: 0, minAmt: 0, unit: 0, priceYC: 0, datas: [], date: '', name: '' };
 
-var _globalDataObj = { stocks: { sz002419: { market: { name: '天虹股份', priceYC: 20.28 } } } };
+var _globalDataObj = { stocks: { sz002419: { market: { name: '天虹股份', priceYC: 20.51 } } } };
 /*URL For Get Data*/
 var _dataURL = {
     //当前信息, 返回v_sz000858=""
@@ -30,7 +30,7 @@ var _dataURL = {
     //月K, 返回monthly_data=""
     k_line_m: "http://data.gtimg.cn/flashdata/hushen/monthly/",
     //资金流向, 返回v_ff_sz000858=""
-    money_flow: "http://qt.gtimg.cn/q=ff_",
+    money_flow: "http://qt.gtimg.cn/q=ff_sz000858",
     //盘口信息, 返回v_s_pksz000858=""
     position_analysis: "http://qt.gtimg.cn/q=s_pk",
     //实时成交量明细,返回v_detail_data_sh600519, 参数p为页码
@@ -88,14 +88,16 @@ function refereshHoverLabel(eventObj) {
     $('.TSG-hover-detail-table  .TSG-hover-detail-label-name').text(_currCalcResult.name);
     $('.TSG-hover-detail-table  .TSG-hover-detail-label-date').text(tmpDateTime);
     tmpIdx = Math.ceil(_TSGConst.timeAmt / _TSGConst.width * tmpX);
-    tmpData = _currCalcResult.datas[tmpIdx];
-    tmpColor = tmpData.price == _currCalcResult.priceYC ? 'rgb(0,0,0)' : tmpData.price > _currCalcResult.priceYC ? 'rgb(241,18,0)' : 'rgb(0,168,0)';
-    $('.TSG-hover-detail-table  .TSG-hover-detail-label-price').text(tmpData.price.toFixed(2)).css('color', tmpColor);
-    $('.TSG-hover-detail-table  .TSG-hover-detail-label-amount').text((tmpData.amount / 100).toFixed(2));
-    $('.TSG-hover-detail-table  .TSG-hover-detail-label-average').text(tmpData.avg.toFixed(2));
-    tmpValue = tmpData.price - _currCalcResult.priceYC;
-    tmpRate = tmpValue / _currCalcResult.priceYC * 100;
-    $('.TSG-hover-detail-table  .TSG-hover-detail-label-rate').text(tmpValue.toFixed(2) + ' (' + tmpRate.toFixed(2) + '%)').css('color', tmpColor);
+    if (tmpIdx < _currCalcResult.datas.length) {
+        tmpData = _currCalcResult.datas[tmpIdx];
+        tmpColor = tmpData.price == _currCalcResult.priceYC ? 'rgb(0,0,0)' : tmpData.price > _currCalcResult.priceYC ? 'rgb(241,18,0)' : 'rgb(0,168,0)';
+        $('.TSG-hover-detail-table  .TSG-hover-detail-label-price').text(tmpData.price.toFixed(2)).css('color', tmpColor);
+        $('.TSG-hover-detail-table  .TSG-hover-detail-label-amount').text(tmpData.amount);
+        $('.TSG-hover-detail-table  .TSG-hover-detail-label-average').text(tmpData.avg.toFixed(2));
+        tmpValue = tmpData.price - _currCalcResult.priceYC;
+        tmpRate = tmpValue / _currCalcResult.priceYC * 100;
+        $('.TSG-hover-detail-table  .TSG-hover-detail-label-rate').text(tmpValue.toFixed(2) + ' (' + tmpRate.toFixed(2) + '%)').css('color', tmpColor);
+    }
 };
 
 function formatHoverTimeLabelText(offsetX) {
@@ -140,34 +142,37 @@ function startRefereshTimeSharing() {
         },
         error: function () { }
     });
-}
+};
 
 function calcPriceUnit(stockId) {
     var tmpArr = window.min_data.split('\n');
     var graphData = [];
     var tmpItemArr, tmpPrice, tmpAmount;
-    var totalAmt = _currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].totalAmt;
     var tmpAvg = _currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].avg;
-    var totalVal = tmpAvg * totalAmt;
+    var tmpTotal = _currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].totalAmt;
+    var totalVal = tmpAvg * tmpTotal;
     for (var i = 2 + _currCalcResult.datas.length; i < tmpArr.length; i++) {
         if (tmpArr[i] != '') {
             tmpItemArr = tmpArr[i].split(' ');
             tmpPrice = parseFloat(tmpItemArr[1]);
-            tmpAmount = parseInt(tmpItemArr[2]);
+            tmpTotal = parseInt(tmpItemArr[2]);
+            tmpAmount = tmpTotal - (_currCalcResult.datas.length == 0 ? 0 : _currCalcResult.datas[_currCalcResult.datas.length - 1].totalAmt);
             totalVal += tmpPrice * tmpAmount;
-            totalAmt += tmpAmount;
-            tmpAvg = totalVal / totalAmt;
-            _currCalcResult.max = Math.max(_currCalcResult.max, tmpPrice);
-            _currCalcResult.min = Math.max(_currCalcResult.min, tmpPrice);
-            _currCalcResult.datas.push({ time: tmpItemArr[0], price: tmpPrice, amount: tmpAmount, totalAmt: totalAmt, avg: tmpAvg });
+            tmpAvg = totalVal / tmpTotal;
+            _currCalcResult.max = _currCalcResult.max == 0 ? tmpPrice : Math.max(_currCalcResult.max, tmpPrice);
+            _currCalcResult.min = _currCalcResult.min == 0 ? tmpPrice : Math.min(_currCalcResult.min, tmpPrice);
+            _currCalcResult.maxAmt = _currCalcResult.maxAmt == 0 ? tmpAmount : Math.max(_currCalcResult.maxAmt, tmpAmount);
+            _currCalcResult.minAmt = _currCalcResult.minAmt == 0 ? tmpAmount : Math.min(_currCalcResult.minAmt, tmpAmount);
+            _currCalcResult.datas.push({ time: tmpItemArr[0], price: tmpPrice, amount: tmpAmount, totalAmt: tmpTotal, avg: tmpAvg });
         }
     }
+
     _currCalcResult.date = _currCalcResult.date == '' ? tmpArr[1].split(':')[1] : _currCalcResult.date;
     _currCalcResult.priceYC = _currCalcResult.priceYC == 0 ? _globalDataObj.stocks[stockId].market.priceYC : _currCalcResult.priceYC;
     _currCalcResult.name = _currCalcResult.name == '' ? _globalDataObj.stocks[stockId].market.name : _currCalcResult.name;
-    var priceUnit = Math.abs((Math.abs(_currCalcResult.max - _currCalcResult.priceYC) > Math.abs(_currCalcResult.priceYC - _currCalcResult.min) ? _currCalcResult.max : _currCalcResult.min) - _currCalcResult.priceYC) / 3;
-    _currCalcResult.max = _currCalcResult.priceYC + priceUnit * 3;
-    _currCalcResult.min = _currCalcResult.priceYC - priceUnit * 3;
+    _currCalcResult.unit = Math.abs((Math.abs(_currCalcResult.max - _currCalcResult.priceYC) > Math.abs(_currCalcResult.priceYC - _currCalcResult.min) ? _currCalcResult.max : _currCalcResult.min) - _currCalcResult.priceYC) / 3;
+    _currCalcResult.max = _currCalcResult.priceYC + _currCalcResult.unit * 3;
+    _currCalcResult.min = _currCalcResult.priceYC - _currCalcResult.unit * 3;
 };
 
 function adjustCoordSize() {
@@ -248,36 +253,46 @@ function refereshCoordLabel() {
 };
 
 function redrawTimeSharing() {
-    var unitH = Math.ceil(_TSGConst.height / ((_currCalcResult.max - _currCalcResult.min) * 100));
-    var unitW = Math.ceil(_TSGConst.width / _TSGConst.timeAmt);
+    var unitH = Math.floor(_TSGConst.height / ((_currCalcResult.max - _currCalcResult.min) * 100));
+    var unitW = Math.floor(_TSGConst.width / _TSGConst.timeAmt);
     var canvas = $(".canvas-time-sharing.graph-line");
+    canvas.attr('height', _TSGConst.height);
     var ctx = canvas[0].getContext("2d");
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.strokeStyle = "#3798d4";
     var tmpX = 0;
-    var tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[0].price - _currCalcResult.min) * 100) * unitH;
+    var tmpY = _TSGConst.height - Math.floor((_currCalcResult.datas[0].price - _currCalcResult.min) * 100) * unitH;
     ctx.moveTo(tmpX, tmpY);
     for (var i = 0; i < _currCalcResult.datas.length; i++) {
         tmpX = unitW * i;
-        tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[i].price - _currCalcResult.min) * 100) * unitH;
+        tmpY = _TSGConst.height - Math.floor((_currCalcResult.datas[i].price - _currCalcResult.min) * 100) * unitH;
         ctx.lineTo(tmpX, tmpY);
     }
 
     ctx.stroke();
     ctx.beginPath();
     ctx.lineJoin = "round";
-    ctx.strokeStyle = '#2d2d2d';//'#f11200','##00a800';
-    var tmpX = 0;
-    var tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[0].avg - _currCalcResult.min) * 100) * unitH;
+    ctx.strokeStyle = '#2d2d2d';//'#f11200','#00a800';
+    tmpX = 0;
+    tmpY = _TSGConst.height - Math.floor((_currCalcResult.datas[0].avg - _currCalcResult.min) * 100) * unitH;
     ctx.moveTo(tmpX, tmpY);
     for (var i = 0; i < _currCalcResult.datas.length; i++) {
         tmpX = unitW * i;
-        tmpY = _TSGConst.height - Math.ceil((_currCalcResult.datas[i].avg - _currCalcResult.min) * 100) * unitH;
+        tmpY = _TSGConst.height - Math.floor((_currCalcResult.datas[i].avg - _currCalcResult.min) * 100) * unitH;
         ctx.lineTo(tmpX, tmpY);
     }
 
     ctx.stroke();
+    ctx.beginPath();
+    var barWidth = _TSGConst.width / _TSGConst.timeAmt / 2;
+    var maxAmt = Math.ceil(_currCalcResult.maxAmt / 100) * 100;
+    var unitAmt = _TSGConst.height / 6 * 2 / maxAmt;
+    var tmpOffset = _TSGConst.height / canvas.height() * 3;
+    ctx.fillStyle = "#dddddd";
+    for (var i = 0; i < _currCalcResult.datas.length; i++) {
+        ctx.fillRect(unitW * i, _TSGConst.height - unitAmt * _currCalcResult.datas[i].amount, barWidth, unitAmt * _currCalcResult.datas[i].amount-tmpOffset);
+    }
 };
 
 function PrefixInteger(num, length) {
