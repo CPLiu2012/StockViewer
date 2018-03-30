@@ -488,7 +488,7 @@ function checkPriceScope(scopeStr, stockData, isLoss) {
             retVal = true;
         }
     } else if (upVal == 0 && downVal != 0) {
-        if (stockData.market.priceTC >= downVal) {
+        if (!isLoss && stockData.market.priceTC >= downVal) {
             retVal = true;
         } else if (isLoss && stockData.market.priceTC <= downVal) {
             retVal = true;
