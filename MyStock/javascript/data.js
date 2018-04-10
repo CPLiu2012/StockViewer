@@ -937,10 +937,35 @@ function sortAllStockList(useTmpList) {
         } else {
             otherList.push(tmpList[i]);
         }
-    }
+    } 0
+
+    var getSymbolIdx = function (symbol) {
+        var retObj = { f: 0, b: 0 };
+        if (symbol.indexOf("-") > 0) {
+            retObj.f = parseInt(symbol.split('-')[0].substr(2));
+            retObj.b = parseInt(symbol.split('-')[1].substr(0, 2));
+        } else {
+            retObj.f = parseInt(symbol.substr(2));
+        }
+
+        return retObj;
+    };
 
     symbolList.sort(function (a, b) {
-        return parseInt(a.symbol.substr(2)) - parseInt(b.symbol.substr(2));
+        var aIdx = getSymbolIdx(a.symbol);
+        var bIdx = getSymbolIdx(b.symbol);
+        if (aIdx.f < bIdx.f) {
+            return false;
+        } else if (aIdx.f == bIdx.f) {
+            if (aIdx.b < bIdx.b) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
+        }
+        //return parseInt(a.symbol.substr(2)) - parseInt(b.symbol.substr(2));
     });
 
     positionList.sort(function (a, b) {
